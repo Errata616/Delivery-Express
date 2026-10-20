@@ -40,6 +40,11 @@ cancelled callbacks cannot change a paid payment. A standalone shipment stays in
 `READY` after payment and cannot be assigned to a shipper until its payment is
 `PAID`.
 
+When a shipment is marked `FAILED`, its latest `PAID` shipment payment is marked
+`REFUNDED` and the customer sees the refund status in their order list. Payments
+are simulated, so this records the refund in the application; it does not transfer
+real money through a payment provider.
+
 For local testing, sign the exact body string and submit it without reformatting:
 
 ```javascript

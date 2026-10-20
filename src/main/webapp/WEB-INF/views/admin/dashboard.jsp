@@ -11,6 +11,7 @@
 <link
 	href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
 	rel="stylesheet">
+<link href="${pageContext.request.contextPath}/css/style.css" rel="stylesheet">
 </head>
 
 <%-- hidden until admin.js confirms the user may see this page --%>
@@ -141,10 +142,52 @@
 			</div>
 		</div>
 
+		<div class="card shadow-sm mb-4" id="deletableShipmentsCard" hidden>
+			<div class="card-header fw-semibold">Vận đơn đã hoàn tất hoặc hoàn tiền</div>
+			<div class="table-responsive">
+				<table class="table table-hover align-middle mb-0">
+					<thead class="table-light">
+						<tr>
+							<th>Mã vận đơn</th>
+							<th>Người nhận</th>
+							<th>Trạng thái</th>
+							<th>Ngày tạo</th>
+							<th></th>
+						</tr>
+					</thead>
+					<tbody id="deletableShipmentsBody">
+						<tr><td colspan="5" class="text-center text-muted">Đang tải...</td></tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
+
 		<div class="row g-3">
-			<!-- Shippers -->
 			<div class="col-lg-7">
-				<div class="card shadow-sm h-100">
+				<div class="card shadow-sm mb-3">
+					<div class="card-header fw-semibold">Danh sách manager</div>
+					<div class="table-responsive">
+						<table class="table table-sm align-middle mb-0">
+							<thead class="table-light">
+								<tr>
+									<th>ID</th>
+									<th>Họ tên</th>
+									<th>Tên đăng nhập</th>
+									<th>Email</th>
+									<th>Điện thoại</th>
+									<th>Trạng thái</th>
+								</tr>
+							</thead>
+							<tbody id="managerBody">
+								<tr>
+									<td colspan="6" class="text-center text-muted">Đang tải...</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+
+				<div class="card shadow-sm">
 					<div class="card-header fw-semibold">Danh sách shipper</div>
 					<div class="table-responsive">
 						<table class="table table-sm align-middle mb-0">
@@ -212,7 +255,6 @@
 				</div>
 			</div>
 		</div>
-
 	</main>
 
 	<script>

@@ -140,6 +140,16 @@ public class ShipmentController {
 		return ResponseEntity.ok(shipmentService.getMyShipments(currentUser.getId()));
 	}
 
+	@DeleteMapping("/{shipmentId}/view")
+	public ResponseEntity<Void> hideShipmentFromView(@PathVariable Long shipmentId,
+			Authentication authentication) {
+
+		User currentUser = getCurrentUser(authentication);
+		shipmentService.hideShipmentFromView(shipmentId, currentUser);
+
+		return ResponseEntity.noContent().build();
+	}
+
 	// =========================================================
 	// GET SHIPMENTS BY SHIPPER
 	// =========================================================

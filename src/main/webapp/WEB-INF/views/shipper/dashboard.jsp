@@ -8,10 +8,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>Bảng điều khiển shipper - UTEExpress</title>
 	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-	<style>
-		.shipment-address { min-width: 190px; max-width: 270px; }
-		.shipment-code { white-space: nowrap; }
-	</style>
+	<link href="${pageContext.request.contextPath}/css/style.css" rel="stylesheet">
 </head>
 <body class="bg-light" data-allowed-roles="SHIPPER" hidden>
 	<nav class="navbar navbar-dark bg-primary">
@@ -273,8 +270,14 @@
 					addActionButton(actionCell, shipment, "FAILED", "Giao thất bại", "btn-outline-danger mt-1",
 						"Xác nhận đánh dấu vận đơn này giao thất bại?");
 				} else {
-					actionCell.textContent = "—";
+					actionCell.textContent = "";
 				}
+				var hideButton = document.createElement("button");
+				hideButton.type = "button";
+				hideButton.className = "btn btn-sm btn-outline-secondary mt-1";
+				hideButton.textContent = "Ẩn khỏi danh sách";
+				hideButton.setAttribute("data-hide-shipment-id", shipment.id);
+				actionCell.appendChild(hideButton);
 
 				return row;
 			}
@@ -379,9 +382,28 @@
 				});
 			});
 			list.addEventListener("click", function (event) {
+				var hideButton = event.target.closest("button[data-hide-shipment-id]");
+				if (hideButton) {
+					hideShipment(hideButton);
+					return;
+				}
 				var button = event.target.closest("button[data-shipment-id]");
 				if (button) { updateStatus(button); }
 			});
+
+			async function hideShipment(button) {
+				var shipmentId = button.getAttribute("data-hide-shipment-id");
+				if (!window.confirm("Ẩn vận đơn này khỏi danh sách của bạn?")) { return; }
+				button.disabled = true;
+				try {
+					await api("/api/shipments/" + encodeURIComponent(shipmentId) + "/view", { method: "DELETE" });
+					showAlert("success", "Đã ẩn vận đơn khỏi danh sách của bạn.");
+					await loadShipments();
+				} catch (error) {
+					showAlert("danger", "Không thể ẩn vận đơn: " + error.message);
+					button.disabled = false;
+				}
+			}
 
 			loadShipments();
 		})();

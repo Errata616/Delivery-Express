@@ -55,7 +55,8 @@ public class ShipperService {
 
 		findShipper(shipperId);
 
-		return shipmentRepository.findByShipperIdOrderByCreatedAtDesc(shipperId);
+		return shipmentService.filterHiddenShipments(shipperId,
+				shipmentRepository.findByShipperIdOrderByCreatedAtDesc(shipperId));
 	}
 
 	/**
@@ -68,8 +69,9 @@ public class ShipperService {
 
 		findShipper(shipperId);
 
-		return shipmentRepository.findByShipperIdAndStatusInOrderByCreatedAtDesc(shipperId,
-				List.of(ShipmentStatus.ASSIGNED, ShipmentStatus.PICKED_UP, ShipmentStatus.DELIVERING));
+		return shipmentService.filterHiddenShipments(shipperId,
+				shipmentRepository.findByShipperIdAndStatusInOrderByCreatedAtDesc(shipperId,
+						List.of(ShipmentStatus.ASSIGNED, ShipmentStatus.PICKED_UP, ShipmentStatus.DELIVERING)));
 	}
 
 	/**
@@ -80,8 +82,9 @@ public class ShipperService {
 
 		findShipper(shipperId);
 
-		return shipmentRepository.findByShipperIdOrderByCreatedAtDesc(shipperId).stream()
-				.filter(shipment -> shipment.getStatus() == ShipmentStatus.DELIVERED).toList();
+		return shipmentService.filterHiddenShipments(shipperId,
+				shipmentRepository.findByShipperIdOrderByCreatedAtDesc(shipperId).stream()
+						.filter(shipment -> shipment.getStatus() == ShipmentStatus.DELIVERED).toList());
 	}
 
 	/**

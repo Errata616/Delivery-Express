@@ -2,7 +2,11 @@ package vn.uteexpress.service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -15,16 +19,20 @@ import vn.uteexpress.dto.BookingRequest;
 import vn.uteexpress.dto.TrackingResponse;
 import vn.uteexpress.entity.Address;
 import vn.uteexpress.entity.Hub;
+import vn.uteexpress.entity.HiddenShipment;
 import vn.uteexpress.entity.NotificationType;
 import vn.uteexpress.entity.Order;
 import vn.uteexpress.entity.OrderStatus;
+import vn.uteexpress.entity.Payment;
 import vn.uteexpress.entity.Shipment;
 import vn.uteexpress.entity.ShipmentEvent;
 import vn.uteexpress.entity.ShipmentStatus;
 import vn.uteexpress.entity.User;
 import vn.uteexpress.repository.HubRepository;
+import vn.uteexpress.repository.HiddenShipmentRepository;
 import vn.uteexpress.repository.OrderRepository;
 import vn.uteexpress.repository.PaymentRepository;
+import vn.uteexpress.repository.ReviewRepository;
 import vn.uteexpress.repository.ShipmentEventRepository;
 import vn.uteexpress.repository.ShipmentRepository;
 import vn.uteexpress.repository.UserRepository;
@@ -35,23 +43,27 @@ public class ShipmentService {
 	private final ShipmentRepository shipmentRepository;
 	private final OrderRepository orderRepository;
 	private final PaymentRepository paymentRepository;
+	private final HiddenShipmentRepository hiddenShipmentRepository;
 	private final UserRepository userRepository;
 	private final ShipmentEventRepository shipmentEventRepository;
+	private final ReviewRepository reviewRepository;
 	private final HubRepository hubRepository;
 	private final ShippingFeeService shippingFeeService;
 	private final NotificationService notificationService; // NEW
 
 	public ShipmentService(ShipmentRepository shipmentRepository, OrderRepository orderRepository,
-			PaymentRepository paymentRepository,
+			PaymentRepository paymentRepository, HiddenShipmentRepository hiddenShipmentRepository,
 			UserRepository userRepository, ShipmentEventRepository shipmentEventRepository,
-			HubRepository hubRepository, ShippingFeeService shippingFeeService,
+			ReviewRepository reviewRepository, HubRepository hubRepository, ShippingFeeService shippingFeeService,
 			NotificationService notificationService) { // NEW
 
 		this.shipmentRepository = shipmentRepository;
 		this.orderRepository = orderRepository;
 		this.paymentRepository = paymentRepository;
+		this.hiddenShipmentRepository = hiddenShipmentRepository;
 		this.userRepository = userRepository;
 		this.shipmentEventRepository = shipmentEventRepository;
+		this.reviewRepository = reviewRepository;
 		this.hubRepository = hubRepository;
 		this.shippingFeeService = shippingFeeService;
 		this.notificationService = notificationService; // NEW
@@ -233,6 +245,18 @@ public class ShipmentService {
 			shipment.setDeliveredAt(now);
 		}
 
+		boolean paymentRefunded = false;
+		if (newStatus == ShipmentStatus.FAILED) {
+			Payment payment = paymentRepository
+					.findFirstByShipmentIdAndStatusOrderByCreatedAtDesc(shipmentId, "PAID").orElse(null);
+			if (payment != null) {
+				payment.setStatus("REFUNDED");
+				payment.setUpdatedAt(now);
+				paymentRepository.save(payment);
+				paymentRefunded = true;
+			}
+		}
+
 		// Legacy shop orders are kept in sync; independent bookings have no order
 		Order order = shipment.getOrder();
 
@@ -262,6 +286,9 @@ public class ShipmentService {
 		Shipment saved = shipmentRepository.save(shipment);
 
 		String eventNote = (note == null || note.isBlank()) ? defaultNote(newStatus) : note.trim();
+		if (paymentRefunded) {
+			eventNote += ". Phí vận chuyển đã được hoàn lại (mô phỏng).";
+		}
 
 		recordEvent(saved, newStatus, hubForStatus(saved, newStatus), eventNote, getActorOrNull());
 
@@ -327,7 +354,84 @@ public class ShipmentService {
 			throw new IllegalArgumentException("User ID không được null");
 		}
 
-		return shipmentRepository.findAllByOwner(userId);
+		return filterHiddenShipments(userId, shipmentRepository.findAllByOwner(userId));
+	}
+
+	@Transactional
+	public void hideShipmentFromView(Long shipmentId, User user) {
+		if (shipmentId == null) {
+			throw new IllegalArgumentException("Shipment ID không được null");
+		}
+		if (user == null || user.getId() == null || user.getRole() == null) {
+			throw new IllegalArgumentException("User ID không được null");
+		}
+
+		Shipment shipment = findShipment(shipmentId);
+		Order order = shipment.getOrder();
+		String role = user.getRole().getName();
+		boolean ownershipMismatch = (shipment.getCustomer() != null
+				&& !user.getId().equals(shipment.getCustomer().getId()))
+				|| (order != null && order.getUser() != null && !user.getId().equals(order.getUser().getId()));
+		boolean allowed = switch (role.toUpperCase()) {
+		case "USER" -> (shipment.getCustomer() != null && user.getId().equals(shipment.getCustomer().getId()))
+				|| (order != null && order.getUser() != null && user.getId().equals(order.getUser().getId()));
+		case "SHIPPER" -> shipment.getShipper() != null && user.getId().equals(shipment.getShipper().getId());
+		case "MANAGER" -> true;
+		default -> false;
+		};
+		if ("USER".equalsIgnoreCase(role) && ownershipMismatch) {
+			allowed = false;
+		}
+		if (!allowed) {
+			throw new IllegalArgumentException("Không có quyền ẩn vận đơn này khỏi danh sách");
+		}
+
+		if (hiddenShipmentRepository.findByUserIdAndShipmentId(user.getId(), shipmentId).isEmpty()) {
+			hiddenShipmentRepository.save(new HiddenShipment(user, shipment));
+		}
+	}
+
+	@Transactional(readOnly = true)
+	public List<Shipment> filterHiddenShipments(Long userId, List<Shipment> shipments) {
+		if (userId == null) {
+			throw new IllegalArgumentException("User ID không được null");
+		}
+		if (shipments.isEmpty()) {
+			return shipments;
+		}
+		java.util.Set<Long> hiddenIds = hiddenShipmentRepository.findByUserId(userId).stream()
+				.map(hidden -> hidden.getShipment().getId()).collect(java.util.stream.Collectors.toSet());
+		return shipments.stream().filter(shipment -> !hiddenIds.contains(shipment.getId())).toList();
+	}
+
+	@Transactional
+	public void deleteCompletedShipment(Long shipmentId) {
+		if (shipmentId == null) {
+			throw new IllegalArgumentException("Shipment ID không được null");
+		}
+
+		Shipment shipment = findShipment(shipmentId);
+		Order order = shipment.getOrder();
+		List<Payment> payments = new ArrayList<>(paymentRepository.findByShipmentId(shipmentId));
+		if (order != null) {
+			payments.addAll(paymentRepository.findByOrderId(order.getId()));
+		}
+		payments = new ArrayList<>(new LinkedHashSet<>(payments));
+		boolean refunded = payments.stream()
+				.anyMatch(payment -> "REFUNDED".equalsIgnoreCase(payment.getStatus()));
+		if (shipment.getStatus() != ShipmentStatus.DELIVERED && !refunded) {
+			throw new IllegalStateException("Chỉ có thể xóa vận đơn đã giao hoặc đã được hoàn tiền");
+		}
+
+		reviewRepository.findByShipmentId(shipmentId).ifPresent(reviewRepository::delete);
+		shipmentEventRepository.deleteAll(
+				shipmentEventRepository.findByShipmentIdOrderByCreatedAtDescIdDesc(shipmentId));
+		paymentRepository.deleteAll(payments);
+		hiddenShipmentRepository.deleteByShipmentId(shipmentId);
+		shipmentRepository.delete(shipment);
+		if (order != null) {
+			orderRepository.delete(order);
+		}
 	}
 
 	// =========================================================
@@ -442,6 +546,25 @@ public class ShipmentService {
 	public List<Shipment> getUnassignedShipments() {
 
 		return shipmentRepository.findByShipperIsNullOrderByCreatedAtDesc();
+	}
+
+	@Transactional(readOnly = true)
+	public List<Shipment> getDeletableShipments() {
+		Set<Long> refundedShipmentIds = new HashSet<>();
+		Set<Long> refundedOrderIds = new HashSet<>();
+		for (Payment payment : paymentRepository.findByStatusIgnoreCase("REFUNDED")) {
+			if (payment.getShipment() != null) {
+				refundedShipmentIds.add(payment.getShipment().getId());
+			}
+			if (payment.getOrder() != null) {
+				refundedOrderIds.add(payment.getOrder().getId());
+			}
+		}
+		return shipmentRepository.findAll().stream()
+				.filter(shipment -> shipment.getStatus() == ShipmentStatus.DELIVERED
+						|| refundedShipmentIds.contains(shipment.getId())
+						|| (shipment.getOrder() != null && refundedOrderIds.contains(shipment.getOrder().getId())))
+				.toList();
 	}
 
 	// =========================================================

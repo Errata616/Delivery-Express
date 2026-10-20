@@ -2,7 +2,7 @@
  * admin.js - dashboard logic shared by admin/dashboard.jsp and manager/dashboard.jsp.
  *  - loads statistics
  *  - lists unassigned shipments and assigns a shipper
- *  - lists shippers and (admin page only) creates SHIPPER / MANAGER accounts
+ *  - lists shippers and (admin page only) managers, and creates staff accounts
  * Allowed roles come from <body data-allowed-roles="...">.
  */
 (function () {
@@ -16,7 +16,7 @@
 	if (!user) { return; }
 	document.body.hidden = false;
 
-	var state = { shippers: [], unassigned: [] };
+	var state = { shippers: [], unassigned: [], deletable: [] };
 
 	var STATUS_LABELS = {
 		READY: "Chờ phân công",
@@ -164,6 +164,39 @@
 		renderShippers();
 	}
 
+	// ---------- managers (admin page only) ----------
+
+	function renderManagers(managers) {
+		var body = $("managerBody");
+		if (!body) { return; }
+		if (!managers.length) {
+			body.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Chưa có manager nào</td></tr>';
+			return;
+		}
+		body.innerHTML = managers.map(function (manager) {
+			return "<tr><td>" + esc(manager.id) + "</td>" +
+				"<td>" + esc(manager.fullName || "-") + "</td>" +
+				"<td>" + esc(manager.username || "-") + "</td>" +
+				"<td>" + esc(manager.email || "-") + "</td>" +
+				"<td>" + esc(manager.phone || "-") + "</td>" +
+				"<td>" + (manager.enabled === false
+					? '<span class="badge bg-secondary">Đã khóa</span>'
+					: '<span class="badge bg-success">Hoạt động</span>') + "</td></tr>";
+		}).join("");
+	}
+
+	async function loadManagers() {
+		var body = $("managerBody");
+		if (!body) { return; }
+		try {
+			var users = (await api("/api/admin/users")) || [];
+			renderManagers(users.filter(function (account) { return account.role === "MANAGER"; }));
+		} catch (error) {
+			body.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Không tải được danh sách manager</td></tr>';
+			showAlert("danger", "Không tải được danh sách manager: " + error.message);
+		}
+	}
+
 	// ---------- unassigned shipments ----------
 
 	function renderUnassigned() {
@@ -186,6 +219,10 @@
 
 		body.innerHTML = state.unassigned.map(function (s) {
 			var area = [s.deliveryDistrict, s.deliveryProvince].filter(Boolean).join(", ") || "-";
+			var viewAction = user.role === "MANAGER"
+				? '<button type="button" class="btn btn-sm btn-outline-secondary ms-2" data-hide="' +
+					esc(s.id) + '">Ẩn</button>'
+				: "";
 			return "<tr>" +
 				"<td><strong>" + esc(s.trackingCode) + "</strong></td>" +
 				"<td>" + esc(s.receiverName || "-") + "<br><small class=\"text-muted\">" + esc(s.receiverPhone || "") + "</small></td>" +
@@ -197,7 +234,7 @@
 				'<td class="text-nowrap"><div class="input-group input-group-sm">' +
 				'<select class="form-select shipper-select"' + (shippers.length ? "" : " disabled") + ">" + options + "</select>" +
 				'<button type="button" class="btn btn-primary" data-assign="' + esc(s.id) + '"' +
-				(shippers.length ? "" : " disabled") + ">Phân công</button></div></td></tr>";
+				(shippers.length ? "" : " disabled") + ">Phân công</button></div>" + viewAction + "</td></tr>";
 		}).join("");
 	}
 
@@ -224,10 +261,68 @@
 		}
 	}
 
+	async function hideShipment(shipmentId, button) {
+		button.disabled = true;
+		try {
+			await api("/api/shipments/" + encodeURIComponent(shipmentId) + "/view", { method: "DELETE" });
+			showAlert("success", "Đã ẩn vận đơn khỏi danh sách của bạn.");
+			await loadUnassigned();
+		} catch (error) {
+			showAlert("danger", "Không thể ẩn vận đơn: " + error.message);
+			button.disabled = false;
+		}
+	}
+
+	async function loadDeletableShipments() {
+		var card = $("deletableShipmentsCard");
+		var body = $("deletableShipmentsBody");
+		if (!card || !body || user.role !== "ADMIN") { return; }
+		card.hidden = false;
+		try {
+			state.deletable = (await api("/api/admin/shipments/deletable")) || [];
+			if (!state.deletable.length) {
+				body.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Không có vận đơn đủ điều kiện xóa</td></tr>';
+				return;
+			}
+			body.innerHTML = state.deletable.map(function (s) {
+				return "<tr>" +
+					"<td><strong>" + esc(s.trackingCode) + "</strong></td>" +
+					"<td>" + esc(s.receiverName || "-") + "</td>" +
+					"<td>" + esc(STATUS_LABELS[s.status] || s.status) + "</td>" +
+					"<td>" + esc(fmtDate(s.createdAt)) + "</td>" +
+					'<td class="text-end"><button type="button" class="btn btn-sm btn-outline-danger" data-delete="' +
+					esc(s.id) + '">Xóa vĩnh viễn</button></td></tr>';
+			}).join("");
+		} catch (error) {
+			body.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Không tải được danh sách</td></tr>';
+			showAlert("danger", "Không tải được vận đơn có thể xóa: " + error.message);
+		}
+	}
+
+	async function deleteShipment(shipmentId, button) {
+		if (!window.confirm("Xóa vĩnh viễn vận đơn này cùng thanh toán và lịch sử liên quan?")) { return; }
+		button.disabled = true;
+		try {
+			await api("/api/admin/shipments/" + encodeURIComponent(shipmentId), { method: "DELETE" });
+			showAlert("success", "Đã xóa vĩnh viễn vận đơn.");
+			await Promise.all([loadDeletableShipments(), loadStats()]);
+		} catch (error) {
+			showAlert("danger", "Không thể xóa vận đơn: " + error.message);
+			button.disabled = false;
+		}
+	}
+
 	function bindAssign() {
 		var body = $("unassignedBody");
 		if (!body) { return; }
 		body.addEventListener("click", function (event) {
+			var hideButton = event.target.closest("button[data-hide]");
+			if (hideButton) {
+				if (window.confirm("Ẩn vận đơn này khỏi danh sách của bạn?")) {
+					hideShipment(hideButton.getAttribute("data-hide"), hideButton);
+				}
+				return;
+			}
 			var button = event.target.closest("button[data-assign]");
 			if (!button) { return; }
 			var row = button.closest("tr");
@@ -238,6 +333,16 @@
 			}
 			assignShipper(button.getAttribute("data-assign"), select.value, button);
 		});
+
+		var deletableBody = $("deletableShipmentsBody");
+		if (deletableBody) {
+			deletableBody.addEventListener("click", function (event) {
+				var button = event.target.closest("button[data-delete]");
+				if (button) {
+					deleteShipment(button.getAttribute("data-delete"), button);
+				}
+			});
+		}
 	}
 
 	// ---------- create user (admin page only) ----------
@@ -265,7 +370,7 @@
 				showAlert("success", "Đã tạo tài khoản " + (created && created.username ? created.username : payload.username) +
 					" (" + payload.role + ")");
 				form.reset();
-				await Promise.all([loadShippers(), loadStats()]);
+				await Promise.all([loadShippers(), loadManagers(), loadStats()]);
 				renderUnassigned();
 			} catch (error) {
 				showAlert("danger", error.message);
@@ -292,8 +397,7 @@
 	}
 
 	async function refreshAll() {
-		await loadShippers();
-		await Promise.all([loadUnassigned(), loadStats()]);
+		await Promise.all([loadShippers(), loadManagers(), loadUnassigned(), loadStats(), loadDeletableShipments()]);
 	}
 
 	bindChrome();

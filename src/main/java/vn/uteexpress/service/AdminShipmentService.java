@@ -28,6 +28,21 @@ public class AdminShipmentService {
 	}
 
 	@Transactional(readOnly = true)
+	public List<Shipment> filterHiddenShipments(Long userId, List<Shipment> shipments) {
+		return shipmentService.filterHiddenShipments(userId, shipments);
+	}
+
+	@Transactional(readOnly = true)
+	public List<Shipment> getDeletableShipments() {
+		return shipmentService.getDeletableShipments();
+	}
+
+	@Transactional
+	public void deleteCompletedShipment(Long shipmentId) {
+		shipmentService.deleteCompletedShipment(shipmentId);
+	}
+
+	@Transactional(readOnly = true)
 	public List<User> getShippers() {
 		return shipmentService.getShippers();
 	}

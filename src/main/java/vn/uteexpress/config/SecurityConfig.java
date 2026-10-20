@@ -48,6 +48,8 @@ public class SecurityConfig {
 						.requestMatchers(HttpMethod.GET, "/api/hubs/**").authenticated()
 						.requestMatchers("/api/hubs/**").hasRole("ADMIN")
 						.requestMatchers("/api/admin/users/**").hasRole("ADMIN")
+						.requestMatchers("/api/admin/shipments/deletable").hasRole("ADMIN")
+						.requestMatchers(HttpMethod.DELETE, "/api/admin/shipments/**").hasRole("ADMIN")
 						.requestMatchers("/api/shipments/**").authenticated()
 						.requestMatchers("/api/shipper/**").hasAnyRole("SHIPPER", "ADMIN")
 						.requestMatchers("/api/admin/shipments/**").hasAnyRole("ADMIN", "MANAGER")
