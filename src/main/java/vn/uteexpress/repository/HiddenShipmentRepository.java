@@ -14,4 +14,6 @@ public interface HiddenShipmentRepository extends JpaRepository<HiddenShipment, 
 	Optional<HiddenShipment> findByUserIdAndShipmentId(Long userId, Long shipmentId);
 
 	void deleteByShipmentId(Long shipmentId);
+
+	void deleteByUserId(Long userId);
 }

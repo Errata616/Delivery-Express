@@ -21,11 +21,9 @@ public class ShippingFeeService {
 	// =========================================================
 
 	private static final BigDecimal BASE_SAME_PROVINCE = BigDecimal.valueOf(15000);
-	private static final BigDecimal BASE_INTER_PROVINCE = BigDecimal.valueOf(30000);
 
 	// Added for every 0.5 kg after the first 0.5 kg (which the base fee includes)
 	private static final BigDecimal STEP_SAME_PROVINCE = BigDecimal.valueOf(2500);
-	private static final BigDecimal STEP_INTER_PROVINCE = BigDecimal.valueOf(5000);
 
 	private static final BigDecimal WEIGHT_STEP_KG = new BigDecimal("0.5");
 
@@ -67,6 +65,11 @@ public class ShippingFeeService {
 			throw new IllegalArgumentException("Thông tin đơn hàng không được null");
 		}
 
+		if (!isHoChiMinhCity(request.getPickupProvince())
+				|| !isHoChiMinhCity(request.getDeliveryProvince())) {
+			throw new IllegalArgumentException("UTEExpress hiện chỉ hỗ trợ gửi và nhận hàng trong TP. Hồ Chí Minh");
+		}
+
 		if (request.getWeightKg() == null || request.getWeightKg().signum() <= 0) {
 			throw new IllegalArgumentException("Cân nặng không hợp lệ");
 		}
@@ -79,16 +82,15 @@ public class ShippingFeeService {
 
 		// ---------- CHANGED: read prices from the database, fall back to the constants ----------
 
-		FeeZone zone = sameProvince ? FeeZone.SAME_PROVINCE : FeeZone.INTER_PROVINCE;
-
-		ShippingFeeRule rule = shippingFeeRuleRepository.findFirstByZoneAndActiveTrueOrderByIdDesc(zone)
+		ShippingFeeRule rule = shippingFeeRuleRepository
+				.findFirstByZoneAndActiveTrueOrderByIdDesc(FeeZone.SAME_PROVINCE)
 				.orElse(null);
 
 		BigDecimal baseFee = rule != null ? rule.getBaseFee()
-				: (sameProvince ? BASE_SAME_PROVINCE : BASE_INTER_PROVINCE);
+				: BASE_SAME_PROVINCE;
 
 		BigDecimal stepFee = rule != null ? rule.getStepFee()
-				: (sameProvince ? STEP_SAME_PROVINCE : STEP_INTER_PROVINCE);
+				: STEP_SAME_PROVINCE;
 
 		// Number of 0.5 kg steps, rounded up. The first step is included in baseFee.
 		BigDecimal steps = chargeableWeight.divide(WEIGHT_STEP_KG, 0, RoundingMode.CEILING);
@@ -110,13 +112,8 @@ public class ShippingFeeService {
 		int minDays;
 		int maxDays;
 
-		if (sameProvince) {
-			minDays = 1;
-			maxDays = serviceType == ServiceType.EXPRESS ? 1 : 2;
-		} else {
-			minDays = serviceType == ServiceType.EXPRESS ? 1 : 3;
-			maxDays = serviceType == ServiceType.EXPRESS ? 2 : 5;
-		}
+		minDays = 1;
+		maxDays = serviceType == ServiceType.EXPRESS ? 1 : 2;
 
 		return new FeeQuote(sameProvince, serviceType, chargeableWeight, baseFee, weightFee, expressSurcharge, codFee,
 				totalFee, minDays, maxDays);
@@ -162,6 +159,11 @@ public class ShippingFeeService {
 		return normalizeProvince(a).equals(normalizeProvince(b));
 	}
 
+	private boolean isHoChiMinhCity(String province) {
+
+		return "ho chi minh".equals(normalizeProvince(province));
+	}
+
 	// "TP. Hồ Chí Minh", "Thành phố Hồ Chí Minh" and "ho chi minh" all become "ho chi minh"
 	public String normalizeProvince(String province) {
 
@@ -174,6 +176,12 @@ public class ShippingFeeService {
 
 		s = s.replaceAll("[.\\-]", " ").replaceAll("\\s+", " ").trim();
 
-		return s.replaceAll("^(thanh pho|tp|tinh)\\s+", "");
+		s = s.replaceAll("^(thanh pho|tp|tinh)\\s+", "");
+		String compact = s.replace(" ", "");
+		if ("hcm".equals(compact) || "tphcm".equals(compact) || "hochiminh".equals(compact)
+				|| "hochiminhcity".equals(compact) || "saigon".equals(compact)) {
+			return "ho chi minh";
+		}
+		return s;
 	}
 }

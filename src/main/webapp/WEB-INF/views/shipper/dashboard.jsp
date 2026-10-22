@@ -25,6 +25,21 @@
 	<main class="container py-4">
 		<div id="alertBox" aria-live="polite"></div>
 
+		<section class="card shadow-sm mb-4">
+			<div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-3">
+				<div>
+					<div class="fw-semibold">Trạng thái nhận việc</div>
+					<div id="availabilityMessage" class="small text-muted">Đang tải trạng thái...</div>
+				</div>
+				<div class="d-flex align-items-center gap-2">
+					<span id="availabilityBadge" class="badge text-bg-secondary">Đang tải</span>
+					<button id="availabilityToggle" type="button" class="btn btn-sm btn-outline-primary" disabled>
+						Đổi trạng thái
+					</button>
+				</div>
+			</div>
+		</section>
+
 		<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
 			<div>
 				<h1 class="h3 mb-1">Vận đơn được giao cho tôi</h1>
@@ -108,9 +123,13 @@
 
 			var shipments = [];
 			var currentFilter = "all";
+			var availability = null;
 			var list = document.getElementById("shipmentList");
 			var alertBox = document.getElementById("alertBox");
 			var refreshButton = document.getElementById("refreshBtn");
+			var availabilityBadge = document.getElementById("availabilityBadge");
+			var availabilityMessage = document.getElementById("availabilityMessage");
+			var availabilityToggle = document.getElementById("availabilityToggle");
 			var statusLabels = {
 				READY: "Chờ phân công",
 				ASSIGNED: "Đã phân công",
@@ -156,6 +175,65 @@
 					? new Date(value[0], value[1] - 1, value[2], value[3] || 0, value[4] || 0, value[5] || 0)
 					: new Date(value);
 				return Number.isNaN(date.getTime()) ? "—" : date.toLocaleString("vi-VN");
+			}
+
+			function renderAvailability() {
+				if (availability === null) {
+					availabilityBadge.textContent = "Chưa rõ";
+					availabilityBadge.className = "badge text-bg-secondary";
+					availabilityMessage.textContent = "Không tải được trạng thái nhận việc.";
+					availabilityToggle.textContent = "Thử tải lại";
+					availabilityToggle.disabled = false;
+					return;
+				}
+				availabilityBadge.textContent = availability ? "Hoạt động" : "Không hoạt động";
+				availabilityBadge.className = "badge " +
+					(availability ? "text-bg-success" : "text-bg-secondary");
+				availabilityMessage.textContent = availability
+					? "Bạn có thể được quản lý phân công vận đơn mới."
+					: "Bạn sẽ không được phân công vận đơn mới. Các vận đơn đã nhận vẫn giữ nguyên.";
+				availabilityToggle.textContent = availability ? "Tạm ngừng nhận việc" : "Bật nhận việc";
+				availabilityToggle.disabled = false;
+			}
+
+			async function loadAvailability() {
+				availabilityToggle.disabled = true;
+				try {
+					var result = await api("/api/shipper/me/availability");
+					if (!result || typeof result.available !== "boolean") {
+						throw new Error("Dữ liệu trạng thái nhận việc không hợp lệ.");
+					}
+					availability = result.available;
+				} catch (error) {
+					availability = null;
+					showAlert("danger", "Không tải được trạng thái nhận việc: " + error.message);
+				}
+				renderAvailability();
+			}
+
+			async function toggleAvailability() {
+				if (availability === null) {
+					await loadAvailability();
+					return;
+				}
+				availabilityToggle.disabled = true;
+				try {
+					var result = await api("/api/shipper/me/availability", {
+						method: "PATCH",
+						body: { available: !availability }
+					});
+					if (!result || typeof result.available !== "boolean") {
+						throw new Error("Dữ liệu trạng thái nhận việc không hợp lệ.");
+					}
+					availability = result.available;
+					renderAvailability();
+					showAlert("success", availability
+						? "Bạn đang hoạt động và có thể nhận phân công mới."
+						: "Bạn đã chuyển sang trạng thái không hoạt động. Vận đơn đã nhận không bị thay đổi.");
+				} catch (error) {
+					availabilityToggle.disabled = false;
+					showAlert("danger", "Không thể cập nhật trạng thái: " + error.message);
+				}
 			}
 
 			function address(shipment, prefix) {
@@ -370,6 +448,7 @@
 				window.Auth.logout();
 			});
 			refreshButton.addEventListener("click", loadShipments);
+			availabilityToggle.addEventListener("click", toggleAvailability);
 			document.querySelectorAll(".filter-btn").forEach(function (button) {
 				button.addEventListener("click", function () {
 					currentFilter = button.getAttribute("data-filter");
@@ -405,6 +484,7 @@
 				}
 			}
 
+			loadAvailability();
 			loadShipments();
 		})();
 	</script>

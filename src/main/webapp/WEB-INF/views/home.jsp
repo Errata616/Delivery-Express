@@ -80,13 +80,13 @@
 					<span
 						class="badge rounded-pill text-bg-light mb-3 px-3 py-2 fw-semibold"><i
 						class="bi bi-lightning-charge-fill text-warning"></i> Giao nhận
-						toàn quốc</span>
+						tại TP. Hồ Chí Minh</span>
 					<h1 class="display-4 mb-3">
 						Gửi hàng <span>nhanh chóng</span>,<br>theo dõi từng bước
 					</h1>
 					<p class="lead mb-4">UTEExpress kết nối người gửi, bưu cục và
-						shipper trên một hệ thống: đặt đơn, thanh toán, lấy hàng và theo
-						dõi hành trình ngay trên website.</p>
+						shipper tại TP. Hồ Chí Minh trên một hệ thống: đặt đơn, thanh toán,
+						lấy hàng và theo dõi hành trình ngay trên website.</p>
 
 					<div id="heroGuest" class="d-flex flex-wrap gap-2">
 						<a class="btn btn-accent btn-lg px-4"
@@ -181,9 +181,9 @@
 				<div class="col-lg-5">
 					<div class="section-eyebrow">Tính cước</div>
 					<h2 class="section-title mb-3">Biết trước phí gửi hàng</h2>
-					<p class="text-muted">Phí tính theo khu vực (cùng tỉnh hoặc
-						liên tỉnh), khối lượng quy đổi, dịch vụ giao và tiền thu hộ COD.
-						Nhập thông tin kiện hàng để xem báo giá và thời gian giao dự kiến.</p>
+					<p class="text-muted">Dịch vụ hiện áp dụng cho các quận, huyện
+						trong TP. Hồ Chí Minh. Phí tính theo khối lượng quy đổi, dịch vụ
+						giao và tiền thu hộ COD.</p>
 					<ul class="list-unstyled text-muted">
 						<li class="mb-2"><i class="bi bi-check-circle-fill text-success"></i>
 							Quy đổi khối lượng theo kích thước (tuỳ chọn)</li>
@@ -199,14 +199,14 @@
 						<form id="quoteForm" novalidate>
 							<div class="row g-3">
 								<div class="col-md-6">
-									<label class="form-label small fw-semibold">Gửi từ (tỉnh/thành)</label>
-									<input name="from" class="form-control" list="provinceList"
-										placeholder="VD: TP. Hồ Chí Minh" required>
+									<label class="form-label small fw-semibold">Gửi từ (quận/huyện TP.HCM)</label>
+									<input name="from" class="form-control" list="districtList"
+										placeholder="VD: Quận 1" required>
 								</div>
 								<div class="col-md-6">
-									<label class="form-label small fw-semibold">Giao đến (tỉnh/thành)</label>
-									<input name="to" class="form-control" list="provinceList"
-										placeholder="VD: Hà Nội" required>
+									<label class="form-label small fw-semibold">Giao đến (quận/huyện TP.HCM)</label>
+									<input name="to" class="form-control" list="districtList"
+										placeholder="VD: Thủ Đức" required>
 								</div>
 								<div class="col-md-4">
 									<label class="form-label small fw-semibold">Khối lượng (kg)</label>
@@ -253,17 +253,26 @@
 						<div id="quoteResult" class="mt-3" aria-live="polite"></div>
 					</div>
 
-					<datalist id="provinceList">
-						<option value="TP. Hồ Chí Minh">
-						<option value="Hà Nội">
-						<option value="Đà Nẵng">
-						<option value="Hải Phòng">
-						<option value="Cần Thơ">
-						<option value="Bình Dương">
-						<option value="Đồng Nai">
-						<option value="Khánh Hòa">
-						<option value="Thừa Thiên Huế">
-						<option value="Lâm Đồng">
+					<datalist id="districtList">
+						<option value="Quận 1">
+						<option value="Quận 2">
+						<option value="Quận 3">
+						<option value="Quận 4">
+						<option value="Quận 5">
+						<option value="Quận 6">
+						<option value="Quận 7">
+						<option value="Quận 8">
+						<option value="Quận 9">
+						<option value="Quận 10">
+						<option value="Quận 11">
+						<option value="Quận 12">
+						<option value="Thủ Đức">
+						<option value="Gò Vấp">
+						<option value="Bình Thạnh">
+						<option value="Phú Nhuận">
+						<option value="Tân Bình">
+						<option value="Tân Phú">
+						<option value="Bình Tân">
 					</datalist>
 				</div>
 			</div>
@@ -283,8 +292,8 @@
 					<div class="card service-card p-4">
 						<span class="icon-badge mb-3"><i class="bi bi-truck"></i></span>
 						<h3 class="h5 fw-bold">Giao tiêu chuẩn</h3>
-						<p class="text-muted mb-0">Giá tiết kiệm cho hàng nội tỉnh và
-							liên tỉnh, có thời gian giao dự kiến ngay khi báo giá.</p>
+						<p class="text-muted mb-0">Giao nhận nội thành TP. Hồ Chí Minh,
+							có thời gian giao dự kiến ngay khi báo giá.</p>
 					</div>
 				</div>
 				<div class="col-md-6 col-lg-4">
@@ -400,4 +409,100 @@
 				chuỗi giao nhận Logistic
 			</div>
 			<div class="small d-flex gap-3">
-				<a href="#tra-cuu">Tra cứu</a> <a href="#tinh-cuoc">Tính cước</a> <a
+				<a href="#tra-cuu">Tra cứu</a> <a href="#tinh-cuoc">Tính cước</a>
+				<a href="#dich-vu">Dịch vụ</a> <a href="#quy-trinh">Quy trình</a>
+			</div>
+		</div>
+	</footer>
+
+	<script src="${pageContext.request.contextPath}/js/api.js"></script>
+	<script
+		src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+	<script>
+		(function () {
+			"use strict";
+
+			var ctx = "${pageContext.request.contextPath}";
+			var form = document.getElementById("trackForm");
+			var codeInput = document.getElementById("trackCode");
+			var button = document.getElementById("trackBtn");
+			var result = document.getElementById("trackResult");
+
+			// The graph only covers Ho Chi Minh City, so skip other provinces.
+			function isHcm(province) {
+				var plain = String(province || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+					.replace(/đ/gi, "d").toLowerCase();
+				return /ho chi minh|hcm|sai gon/.test(plain);
+			}
+
+			async function loadRoute(tracking, box) {
+				if (!tracking.pickupDistrict || !tracking.deliveryDistrict) { return; }
+				if (!isHcm(tracking.pickupProvince) || !isHcm(tracking.deliveryProvince)) { return; }
+				try {
+					var route = await window.apiData(ctx + "/api/routes?from=" + encodeURIComponent(tracking.pickupDistrict)
+						+ "&to=" + encodeURIComponent(tracking.deliveryDistrict), { auth: false });
+
+					var block = document.createElement("div");
+					block.className = "mt-3 p-3 rounded-4 border";
+					var heading = document.createElement("div");
+					heading.className = "small text-muted mb-2";
+					heading.textContent = "Tuyến vận chuyển dự kiến (" + route.hops + " chặng)";
+					block.appendChild(heading);
+
+					route.path.forEach(function (district, index) {
+						var badge = document.createElement("span");
+						badge.className = "badge text-bg-light border";
+						badge.textContent = district.name;
+						block.appendChild(badge);
+						if (index < route.path.length - 1) {
+							var arrow = document.createElement("i");
+							arrow.className = "bi bi-arrow-right text-muted mx-2";
+							arrow.setAttribute("aria-hidden", "true");
+							block.appendChild(arrow);
+						}
+					});
+					box.appendChild(block);
+				} catch (error) {
+					// Districts outside the route graph have no route to display.
+				}
+			}
+
+			form.addEventListener("submit", async function (event) {
+				event.preventDefault();
+				result.replaceChildren();
+				button.disabled = true;
+				button.textContent = "Đang tra cứu...";
+
+				try {
+					var tracking = await window.apiData(ctx + "/api/shipments/tracking/"
+						+ encodeURIComponent(codeInput.value.trim()), { auth: false });
+					var box = document.createElement("div");
+					box.className = "p-3 rounded-4 border";
+
+					var title = document.createElement("h3");
+					title.className = "h5 mb-2";
+					title.textContent = "Vận đơn " + tracking.trackingCode;
+					box.appendChild(title);
+
+					var status = document.createElement("p");
+					status.className = "mb-0";
+					status.textContent = "Trạng thái: " + (tracking.statusText || tracking.status || "Không rõ");
+					box.appendChild(status);
+					result.appendChild(box);
+					await loadRoute(tracking, box);
+				} catch (error) {
+					var alert = document.createElement("div");
+					alert.className = "alert alert-danger mb-0";
+					alert.setAttribute("role", "alert");
+					alert.textContent = error.message || "Không tìm thấy vận đơn. Vui lòng kiểm tra mã và thử lại.";
+					result.appendChild(alert);
+				} finally {
+					button.disabled = false;
+					button.textContent = "Tra cứu";
+				}
+			});
+		})();
+	</script>
+
+</body>
+</html>

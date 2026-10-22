@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
 import vn.uteexpress.dto.AdminChangeUserRoleRequest;
+import vn.uteexpress.dto.AdminAssignShipperManagerRequest;
 import vn.uteexpress.dto.AdminCreateUserRequest;
 import vn.uteexpress.dto.AdminSetUserEnabledRequest;
 import vn.uteexpress.dto.AdminUserResponse;
@@ -41,6 +43,12 @@ public class AdminUserController {
 		return ResponseEntity.ok(ApiResponse.ok(adminUserService.getUser(id)));
 	}
 
+	@DeleteMapping("/{id}")
+	public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
+		adminUserService.deleteUser(id);
+		return ResponseEntity.noContent().build();
+	}
+
 	@PostMapping
 	public ResponseEntity<ApiResponse<AdminUserResponse>> createUser(
 			@Valid @RequestBody AdminCreateUserRequest request) {
@@ -52,6 +60,12 @@ public class AdminUserController {
 	public ResponseEntity<ApiResponse<AdminUserResponse>> changeRole(@PathVariable Long id,
 			@Valid @RequestBody AdminChangeUserRoleRequest request) {
 		return ResponseEntity.ok(ApiResponse.ok(adminUserService.changeRole(id, request)));
+	}
+
+	@PutMapping("/{id}/manager")
+	public ResponseEntity<ApiResponse<AdminUserResponse>> assignShipperToManager(@PathVariable Long id,
+			@RequestBody AdminAssignShipperManagerRequest request) {
+		return ResponseEntity.ok(ApiResponse.ok(adminUserService.assignShipperToManager(id, request.managerId())));
 	}
 
 	@PatchMapping("/{id}/enabled")

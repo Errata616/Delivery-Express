@@ -10,6 +10,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -144,6 +145,11 @@ public class ShipmentService {
 
 	@Transactional
 	public Shipment assignShipper(Long shipmentId, Long shipperId) {
+		return assignShipper(shipmentId, shipperId, null);
+	}
+
+	@Transactional
+	public Shipment assignShipper(Long shipmentId, Long shipperId, User actor) {
 
 		if (shipmentId == null) {
 			throw new IllegalArgumentException("Shipment ID không được null");
@@ -155,7 +161,21 @@ public class ShipmentService {
 
 		Shipment shipment = findShipment(shipmentId);
 
-		User shipper = findShipper(shipperId);
+		User shipper = userRepository.findById(shipperId)
+				.orElseThrow(() -> new IllegalArgumentException("Không tìm thấy Shipper"));
+		if (shipper.getRole() == null || !"SHIPPER".equalsIgnoreCase(shipper.getRole().getName())) {
+			throw new IllegalArgumentException("User được chọn không có role SHIPPER");
+		}
+		if (actor != null && actor.getRole() != null && "MANAGER".equalsIgnoreCase(actor.getRole().getName())
+				&& (shipper.getManager() == null || !actor.getId().equals(shipper.getManager().getId()))) {
+			throw new AccessDeniedException("Managers can only assign shipments to shippers in their team");
+		}
+		if (!shipper.isEnabled()) {
+			throw new IllegalArgumentException("Tài khoản Shipper đang bị khóa");
+		}
+		if (!shipper.isAvailable()) {
+			throw new IllegalArgumentException("Shipper hiện không hoạt động và không nhận phân công mới");
+		}
 
 		if (shipment.getStatus() != ShipmentStatus.READY) {
 
@@ -487,6 +507,7 @@ public class ShipmentService {
 		response.setReceiverPhone(TrackingResponse.maskPhone(receiverPhone));
 
 		response.setPickupProvince(shipment.getPickupProvince());
+		response.setPickupDistrict(shipment.getPickupDistrict());
 		response.setDeliveryDistrict(deliveryDistrict);
 		response.setDeliveryProvince(deliveryProvince);
 
@@ -550,21 +571,42 @@ public class ShipmentService {
 
 	@Transactional(readOnly = true)
 	public List<Shipment> getDeletableShipments() {
-		Set<Long> refundedShipmentIds = new HashSet<>();
-		Set<Long> refundedOrderIds = new HashSet<>();
+		RefundedPayments refunded = refundedPayments();
+		return shipmentRepository.findAll().stream()
+				.filter(shipment -> isDeletable(shipment, refunded))
+				.toList();
+	}
+
+	@Transactional(readOnly = true)
+	public List<Shipment> getCurrentShipments() {
+		RefundedPayments refunded = refundedPayments();
+		return shipmentRepository.findAll().stream()
+				.filter(shipment -> !isDeletable(shipment, refunded))
+				.sorted((left, right) -> right.getCreatedAt().compareTo(left.getCreatedAt()))
+				.toList();
+	}
+
+	private RefundedPayments refundedPayments() {
+		Set<Long> shipmentIds = new HashSet<>();
+		Set<Long> orderIds = new HashSet<>();
 		for (Payment payment : paymentRepository.findByStatusIgnoreCase("REFUNDED")) {
 			if (payment.getShipment() != null) {
-				refundedShipmentIds.add(payment.getShipment().getId());
+				shipmentIds.add(payment.getShipment().getId());
 			}
 			if (payment.getOrder() != null) {
-				refundedOrderIds.add(payment.getOrder().getId());
+				orderIds.add(payment.getOrder().getId());
 			}
 		}
-		return shipmentRepository.findAll().stream()
-				.filter(shipment -> shipment.getStatus() == ShipmentStatus.DELIVERED
-						|| refundedShipmentIds.contains(shipment.getId())
-						|| (shipment.getOrder() != null && refundedOrderIds.contains(shipment.getOrder().getId())))
-				.toList();
+		return new RefundedPayments(shipmentIds, orderIds);
+	}
+
+	private boolean isDeletable(Shipment shipment, RefundedPayments refunded) {
+		return shipment.getStatus() == ShipmentStatus.DELIVERED
+				|| refunded.shipmentIds().contains(shipment.getId())
+				|| (shipment.getOrder() != null && refunded.orderIds().contains(shipment.getOrder().getId()));
+	}
+
+	private record RefundedPayments(Set<Long> shipmentIds, Set<Long> orderIds) {
 	}
 
 	// =========================================================
@@ -593,6 +635,9 @@ public class ShipmentService {
 		if (!shipper.isEnabled()) {
 
 			throw new IllegalArgumentException("Tài khoản Shipper đang bị khóa");
+		}
+		if (!shipper.isAvailable()) {
+			throw new IllegalArgumentException("Shipper hiện không hoạt động và không nhận phân công mới");
 		}
 
 		return shipper;

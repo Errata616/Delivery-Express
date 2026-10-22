@@ -5,6 +5,7 @@ import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -19,6 +20,12 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 	Page<Review> findByShipperIdOrderByCreatedAtDesc(Long shipperId, Pageable pageable);
 
 	long countByShipperId(Long shipperId);
+
+	long countByCustomerId(Long customerId);
+
+	@Modifying
+	@Query("update Review r set r.shipper = null where r.shipper.id = :shipperId")
+	int clearShipper(@Param("shipperId") Long shipperId);
 
 	@Query("select avg(r.rating) from Review r where r.shipper.id = :shipperId")
 	Double averageRatingByShipper(@Param("shipperId") Long shipperId);

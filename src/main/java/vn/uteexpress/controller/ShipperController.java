@@ -6,6 +6,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.Valid;
+import vn.uteexpress.dto.ShipperAvailabilityRequest;
+import vn.uteexpress.dto.ShipperAvailabilityResponse;
 import vn.uteexpress.entity.Shipment;
 import vn.uteexpress.entity.ShipmentStatus;
 import vn.uteexpress.entity.User;
@@ -79,18 +82,35 @@ public class ShipperController {
 	 */
 	@GetMapping("/me/shipments")
 	public ResponseEntity<List<Shipment>> getMyShipments(Authentication authentication) {
+		User currentUser = getCurrentShipper(authentication);
+		return ResponseEntity.ok(shipperService.getShipments(currentUser.getId()));
+	}
 
+	@GetMapping("/me/availability")
+	public ResponseEntity<ShipperAvailabilityResponse> getMyAvailability(Authentication authentication) {
+		User currentUser = getCurrentShipper(authentication);
+		return ResponseEntity.ok(new ShipperAvailabilityResponse(
+				shipperService.getAvailability(currentUser.getId())));
+	}
+
+	@PatchMapping("/me/availability")
+	public ResponseEntity<ShipperAvailabilityResponse> setMyAvailability(
+			@Valid @RequestBody ShipperAvailabilityRequest request, Authentication authentication) {
+		User currentUser = getCurrentShipper(authentication);
+		return ResponseEntity.ok(new ShipperAvailabilityResponse(
+				shipperService.setAvailability(currentUser.getId(), request.available())));
+	}
+
+	private User getCurrentShipper(Authentication authentication) {
 		if (authentication == null || !authentication.isAuthenticated()) {
 			throw new IllegalArgumentException("Chưa đăng nhập");
 		}
-
 		User currentUser = userRepository.findByUsername(authentication.getName())
 				.orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tài khoản đang đăng nhập"));
 		if (currentUser.getRole() == null || !"SHIPPER".equalsIgnoreCase(currentUser.getRole().getName())) {
 			throw new IllegalArgumentException("Tài khoản không có quyền Shipper");
 		}
-
-		return ResponseEntity.ok(shipperService.getShipments(currentUser.getId()));
+		return currentUser;
 	}
 
 	/**

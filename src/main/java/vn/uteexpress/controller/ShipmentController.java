@@ -45,7 +45,7 @@ public class ShipmentController {
 
 		checkManagerOrAdmin(currentUser);
 
-		return ResponseEntity.ok(shipmentService.assignShipper(shipmentId, shipperId));
+		return ResponseEntity.ok(shipmentService.assignShipper(shipmentId, shipperId, currentUser));
 	}
 
 	// =========================================================
@@ -176,7 +176,9 @@ public class ShipmentController {
 
 		checkManagerOrAdmin(currentUser);
 
-		return ResponseEntity.ok(shipmentService.getShippers().stream().map(AdminUserResponse::from).toList());
+		List<User> shippers = isAdmin(currentUser) ? shipmentService.getShippers()
+				: userRepository.findByManager_Id(currentUser.getId());
+		return ResponseEntity.ok(shippers.stream().map(AdminUserResponse::from).toList());
 	}
 
 	// =========================================================
@@ -246,9 +248,18 @@ public class ShipmentController {
 
 	private void checkShipperAccess(Long shipperId, User currentUser) {
 
-		if (isAdmin(currentUser) || isManager(currentUser)) {
+		if (isAdmin(currentUser)) {
 
 			return;
+		}
+
+		if (isManager(currentUser)) {
+			boolean managesShipper = userRepository.findByManager_Id(currentUser.getId()).stream()
+					.anyMatch(shipper -> shipper.getId().equals(shipperId));
+			if (managesShipper) {
+				return;
+			}
+			throw new IllegalArgumentException("Manager chỉ được xem shipper thuộc đội mình");
 		}
 
 		if (!isShipper(currentUser) || !currentUser.getId().equals(shipperId)) {

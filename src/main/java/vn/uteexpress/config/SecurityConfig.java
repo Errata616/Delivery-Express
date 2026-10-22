@@ -77,6 +77,8 @@ public class SecurityConfig {
 				// PAGE SHELLS: no data in them. admin.js/auth.js guard the view and the
 				// /api/** chain enforces the real role checks on every data request.
 				.requestMatchers("/admin/dashboard", "/manager/dashboard", "/shipper/dashboard").permitAll()
+				//TRACKING
+				.requestMatchers(HttpMethod.GET, "/api/routes/**").permitAll()
 				// ADMIN WEB
 				.requestMatchers("/admin/**").hasRole("ADMIN")
 				// ADMIN WEB
@@ -88,6 +90,7 @@ public class SecurityConfig {
 				// SHIPPER WEB
 				.requestMatchers("/shipper/**").hasAnyRole("SHIPPER", "ADMIN")
 				.anyRequest().authenticated())
+				
 
 				// =========================
 				// LOGIN

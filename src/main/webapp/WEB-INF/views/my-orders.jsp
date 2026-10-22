@@ -345,7 +345,7 @@
 
 				if (info && info.refunded) {
 					badge.classList.add("text-bg-info");
-					badge.textContent = "Đã hoàn tiền (mô phỏng)";
+					badge.textContent = "Đã hoàn tiền";
 				} else if (info && info.paid) {
 					badge.classList.add("text-bg-success");
 					badge.textContent = "Đã thanh toán";

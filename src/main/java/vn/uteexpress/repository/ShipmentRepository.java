@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -23,6 +24,14 @@ public interface ShipmentRepository extends JpaRepository<Shipment, Long> {
 	List<Shipment> findByShipperIsNullOrderByCreatedAtDesc();
 
 	boolean existsByOrderId(Long orderId);
+
+	long countByCustomerId(Long customerId);
+
+	long countByShipperIdAndStatusIn(Long shipperId, List<ShipmentStatus> statuses);
+
+	@Modifying
+	@Query("update Shipment s set s.shipper = null where s.shipper.id = :shipperId")
+	int unassignShipper(@Param("shipperId") Long shipperId);
 
 	List<Shipment> findByShipperIdAndStatusOrderByCreatedAtDesc(Long shipperId, ShipmentStatus status);
 

@@ -1,6 +1,7 @@
 package vn.uteexpress.service;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -8,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Optional;
+import java.time.LocalDateTime;
 
 import org.junit.jupiter.api.Test;
 
@@ -27,6 +29,27 @@ import vn.uteexpress.repository.ShipmentRepository;
 import vn.uteexpress.repository.UserRepository;
 
 class ShipmentDeletionTest {
+
+	@Test
+	void currentShipmentsExcludeDeliveredAndRefundedShipments() {
+		ShipmentRepository shipmentRepository = mock(ShipmentRepository.class);
+		PaymentRepository paymentRepository = mock(PaymentRepository.class);
+		Shipment ready = currentShipment(1L, ShipmentStatus.READY);
+		Shipment failed = currentShipment(2L, ShipmentStatus.FAILED);
+		Shipment delivered = currentShipment(3L, ShipmentStatus.DELIVERED);
+		Shipment refunded = currentShipment(4L, ShipmentStatus.FAILED);
+		Payment refund = new Payment();
+		refund.setShipment(refunded);
+		when(paymentRepository.findByStatusIgnoreCase("REFUNDED")).thenReturn(List.of(refund));
+		when(shipmentRepository.findAll()).thenReturn(List.of(delivered, refunded, ready, failed));
+
+		List<Shipment> current = new ShipmentService(shipmentRepository, mock(OrderRepository.class),
+				paymentRepository, mock(HiddenShipmentRepository.class), mock(UserRepository.class),
+				mock(ShipmentEventRepository.class), mock(ReviewRepository.class), mock(HubRepository.class),
+				mock(ShippingFeeService.class), mock(NotificationService.class)).getCurrentShipments();
+
+		assertEquals(List.of(2L, 1L), current.stream().map(Shipment::getId).toList());
+	}
 
 	@Test
 	void deletesDeliveredShipmentAndItsRelatedRecords() {
@@ -105,6 +128,14 @@ class ShipmentDeletionTest {
 		Shipment shipment = mock(Shipment.class);
 		when(shipment.getId()).thenReturn(9L);
 		when(shipment.getStatus()).thenReturn(status);
+		return shipment;
+	}
+
+	private Shipment currentShipment(Long id, ShipmentStatus status) {
+		Shipment shipment = mock(Shipment.class);
+		when(shipment.getId()).thenReturn(id);
+		when(shipment.getStatus()).thenReturn(status);
+		when(shipment.getCreatedAt()).thenReturn(LocalDateTime.of(2026, 10, 22, 10, 0).plusMinutes(id));
 		return shipment;
 	}
 

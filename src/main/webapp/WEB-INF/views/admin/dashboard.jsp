@@ -112,12 +112,12 @@
 			</div>
 		</div>
 
-		<!-- Unassigned shipments -->
+		<!-- Current shipments -->
 		<div class="card shadow-sm mb-4">
 			<div
 				class="card-header fw-semibold d-flex justify-content-between">
-				<span>Vận đơn chờ phân công</span> <span
-					class="badge bg-warning text-dark" id="unassignedCount">0</span>
+				<span>Vận đơn hiện tại</span> <span
+					class="badge bg-warning text-dark" id="currentShipmentCount">0</span>
 			</div>
 			<div class="table-responsive">
 				<table class="table table-hover align-middle mb-0">
@@ -130,12 +130,13 @@
 							<th>Phí</th>
 							<th>COD</th>
 							<th>Ngày tạo</th>
+							<th>Trạng thái</th>
 							<th style="min-width: 260px">Phân công</th>
 						</tr>
 					</thead>
-					<tbody id="unassignedBody">
+					<tbody id="currentShipmentsBody">
 						<tr>
-							<td colspan="8" class="text-center text-muted">Đang tải...</td>
+							<td colspan="9" class="text-center text-muted">Đang tải...</td>
 						</tr>
 					</tbody>
 				</table>
@@ -162,6 +163,39 @@
 			</div>
 		</div>
 
+		<!-- Shipper zones -->
+		<div class="card shadow-sm mb-4" id="zoneCard">
+			<div class="card-header fw-semibold">Khu vực phụ trách của shipper</div>
+			<div class="card-body">
+				<div id="zoneAlert" class="alert alert-light py-2 small">Chọn shipper rồi tick các quận/huyện họ phụ trách.</div>
+				<div class="row g-3">
+					<div class="col-md-4">
+						<label class="form-label small fw-semibold">Shipper</label>
+						<select id="zoneShipper" class="form-select form-select-sm"></select>
+					</div>
+					<div class="col-md-8">
+						<div class="d-flex justify-content-between align-items-center mb-2">
+							<label class="form-label small fw-semibold mb-0">Quận/huyện</label>
+							<div class="btn-group btn-group-sm">
+								<button type="button" class="btn btn-outline-secondary" id="zoneAll">Chọn hết</button>
+								<button type="button" class="btn btn-outline-secondary" id="zoneNone">Bỏ chọn</button>
+							</div>
+						</div>
+						<div id="zoneChecks" class="row row-cols-2 row-cols-md-4 g-2"></div>
+					</div>
+				</div>
+				<button type="button" id="zoneSave" class="btn btn-primary btn-sm mt-3" disabled>Lưu khu vực</button>
+			</div>
+			<div class="table-responsive">
+				<table class="table table-sm table-hover align-middle mb-0">
+					<thead class="table-light">
+						<tr><th>Shipper</th><th>Khu vực phụ trách</th></tr>
+					</thead>
+					<tbody id="zoneSummary"></tbody>
+				</table>
+			</div>
+		</div>
+
 		<div class="row g-3">
 			<div class="col-lg-7">
 				<div class="card shadow-sm mb-3">
@@ -175,12 +209,13 @@
 									<th>Tên đăng nhập</th>
 									<th>Email</th>
 									<th>Điện thoại</th>
-									<th>Trạng thái</th>
+									<th>Shipper</th>
+									<th></th>
 								</tr>
 							</thead>
 							<tbody id="managerBody">
 								<tr>
-									<td colspan="6" class="text-center text-muted">Đang tải...</td>
+									<td colspan="7" class="text-center text-muted">Đang tải...</td>
 								</tr>
 							</tbody>
 						</table>
@@ -197,11 +232,37 @@
 									<th>Họ tên</th>
 									<th>Điện thoại</th>
 									<th>Trạng thái</th>
+									<th>Manager phụ trách</th>
+									<th></th>
 								</tr>
 							</thead>
 							<tbody id="shipperBody">
 								<tr>
-									<td colspan="4" class="text-center text-muted">Đang tải...</td>
+									<td colspan="6" class="text-center text-muted">Đang tải...</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+
+				<div class="card shadow-sm mt-3">
+					<div class="card-header fw-semibold">Tài khoản người dùng &amp; đối tác</div>
+					<div class="table-responsive">
+						<table class="table table-sm align-middle mb-0">
+							<thead class="table-light">
+								<tr>
+									<th>ID</th>
+									<th>Họ tên</th>
+									<th>Tên đăng nhập</th>
+									<th>Email</th>
+									<th>Vai trò</th>
+									<th>Trạng thái</th>
+									<th></th>
+								</tr>
+							</thead>
+							<tbody id="userAccountBody">
+								<tr>
+									<td colspan="7" class="text-center text-muted">Đang tải...</td>
 								</tr>
 							</tbody>
 						</table>
@@ -265,5 +326,6 @@
 	<script src="${pageContext.request.contextPath}/js/auth.js"></script>
 	<script src="${pageContext.request.contextPath}/js/api.js"></script>
 	<script src="${pageContext.request.contextPath}/js/admin.js"></script>
+	<script src="${pageContext.request.contextPath}/js/zones.js"></script>
 </body>
 </html>

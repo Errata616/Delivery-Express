@@ -34,16 +34,35 @@ public class AdminShipmentController {
 		return ResponseEntity.ok(adminShipmentService.filterHiddenShipments(currentUser.getId(), shipments));
 	}
 
-	@GetMapping("/shippers")
-	public ResponseEntity<List<AdminUserResponse>> getShippers() {
+	@GetMapping("/current")
+	public ResponseEntity<List<Shipment>> getCurrentShipments(Authentication authentication) {
+		User currentUser = getCurrentUser(authentication);
+		List<Shipment> shipments = adminShipmentService.getCurrentShipments();
+		if (isAdmin(currentUser)) {
+			return ResponseEntity.ok(shipments);
+		}
+		List<Shipment> manageable = shipments.stream()
+				.filter(shipment -> shipment.getShipper() == null
+						|| (shipment.getShipper().getManager() != null
+								&& currentUser.getId().equals(shipment.getShipper().getManager().getId())))
+				.toList();
+		return ResponseEntity.ok(adminShipmentService.filterHiddenShipments(currentUser.getId(), manageable));
+	}
 
-		return ResponseEntity.ok(adminShipmentService.getShippers().stream().map(AdminUserResponse::from).toList());
+	@GetMapping("/shippers")
+	public ResponseEntity<List<AdminUserResponse>> getShippers(Authentication authentication) {
+		User currentUser = getCurrentUser(authentication);
+		List<User> shippers = isAdmin(currentUser)
+				? adminShipmentService.getShippers()
+				: userRepository.findByManager_Id(currentUser.getId());
+		return ResponseEntity.ok(shippers.stream().map(AdminUserResponse::from).toList());
 	}
 
 	@PutMapping("/{shipmentId}/assign/{shipperId}")
-	public ResponseEntity<Shipment> assignShipper(@PathVariable Long shipmentId, @PathVariable Long shipperId) {
-
-		return ResponseEntity.ok(adminShipmentService.assignShipper(shipmentId, shipperId));
+	public ResponseEntity<Shipment> assignShipper(@PathVariable Long shipmentId, @PathVariable Long shipperId,
+			Authentication authentication) {
+		return ResponseEntity.ok(adminShipmentService.assignShipper(shipmentId, shipperId,
+				getCurrentUser(authentication)));
 	}
 
 	@GetMapping("/{shipmentId}")

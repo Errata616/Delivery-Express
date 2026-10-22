@@ -15,9 +15,19 @@ import vn.uteexpress.dto.AdminChangeUserRoleRequest;
 import vn.uteexpress.dto.AdminSetUserEnabledRequest;
 import vn.uteexpress.dto.AdminUserResponse;
 import vn.uteexpress.entity.Role;
+import vn.uteexpress.entity.ShipmentStatus;
 import vn.uteexpress.entity.User;
+import vn.uteexpress.repository.AddressRepository;
+import vn.uteexpress.repository.HiddenShipmentRepository;
+import vn.uteexpress.repository.NotificationRepository;
+import vn.uteexpress.repository.OrderRepository;
 import vn.uteexpress.repository.RefreshTokenRepository;
+import vn.uteexpress.repository.ReviewRepository;
 import vn.uteexpress.repository.RoleRepository;
+import vn.uteexpress.repository.ShipmentEventRepository;
+import vn.uteexpress.repository.ShipmentRepository;
+import vn.uteexpress.repository.ShipperZoneRepository;
+import vn.uteexpress.repository.ShopRepository;
 import vn.uteexpress.repository.UserRepository;
 import vn.uteexpress.security.CurrentUser;
 
@@ -29,14 +39,37 @@ public class AdminUserService {
 	private final PasswordEncoder passwordEncoder;
 	private final RefreshTokenRepository refreshTokenRepository;
 	private final CurrentUser currentUser;
+	private final AddressRepository addressRepository;
+	private final HiddenShipmentRepository hiddenShipmentRepository;
+	private final NotificationRepository notificationRepository;
+	private final OrderRepository orderRepository;
+	private final ReviewRepository reviewRepository;
+	private final ShipmentEventRepository shipmentEventRepository;
+	private final ShipmentRepository shipmentRepository;
+	private final ShipperZoneRepository shipperZoneRepository;
+	private final ShopRepository shopRepository;
 
 	public AdminUserService(UserRepository userRepository, RoleRepository roleRepository,
-			PasswordEncoder passwordEncoder, RefreshTokenRepository refreshTokenRepository, CurrentUser currentUser) {
+			PasswordEncoder passwordEncoder, RefreshTokenRepository refreshTokenRepository, CurrentUser currentUser,
+			AddressRepository addressRepository, HiddenShipmentRepository hiddenShipmentRepository,
+			NotificationRepository notificationRepository, OrderRepository orderRepository,
+			ReviewRepository reviewRepository, ShipmentEventRepository shipmentEventRepository,
+			ShipmentRepository shipmentRepository, ShipperZoneRepository shipperZoneRepository,
+			ShopRepository shopRepository) {
 		this.userRepository = userRepository;
 		this.roleRepository = roleRepository;
 		this.passwordEncoder = passwordEncoder;
 		this.refreshTokenRepository = refreshTokenRepository;
 		this.currentUser = currentUser;
+		this.addressRepository = addressRepository;
+		this.hiddenShipmentRepository = hiddenShipmentRepository;
+		this.notificationRepository = notificationRepository;
+		this.orderRepository = orderRepository;
+		this.reviewRepository = reviewRepository;
+		this.shipmentEventRepository = shipmentEventRepository;
+		this.shipmentRepository = shipmentRepository;
+		this.shipperZoneRepository = shipperZoneRepository;
+		this.shopRepository = shopRepository;
 	}
 
 	@Transactional(readOnly = true)
@@ -47,6 +80,49 @@ public class AdminUserService {
 	@Transactional(readOnly = true)
 	public AdminUserResponse getUser(Long id) {
 		return AdminUserResponse.from(findUser(id));
+	}
+
+	@Transactional
+	public void deleteUser(Long id) {
+		User user = findUser(id);
+		String roleName = user.getRole().getName();
+		if ("ADMIN".equalsIgnoreCase(roleName)) {
+			throw new IllegalArgumentException("Administrator accounts cannot be deleted");
+		}
+		if (user.getId().equals(currentUser.getUser().getId())) {
+			throw new IllegalArgumentException("You cannot delete your own account");
+		}
+		if (orderRepository.countByUserId(id) > 0
+				|| shipmentRepository.countByCustomerId(id) > 0
+				|| reviewRepository.countByCustomerId(id) > 0
+				|| shopRepository.existsByVendorId(id)) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT,
+					"Cannot delete an account with orders, shipments, reviews, or a shop.");
+		}
+		if ("SHIPPER".equalsIgnoreCase(roleName)
+				&& shipmentRepository.countByShipperIdAndStatusIn(id,
+						List.of(ShipmentStatus.ASSIGNED, ShipmentStatus.PICKED_UP, ShipmentStatus.DELIVERING)) > 0) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT,
+					"Cannot delete a shipper with active shipments.");
+		}
+
+		if ("MANAGER".equalsIgnoreCase(roleName)) {
+			List<User> assignedShippers = userRepository.findByManager_Id(id);
+			assignedShippers.forEach(shipper -> shipper.setManager(null));
+			userRepository.saveAll(assignedShippers);
+		}
+		if ("SHIPPER".equalsIgnoreCase(roleName)) {
+			shipmentRepository.unassignShipper(id);
+			reviewRepository.clearShipper(id);
+			shipperZoneRepository.deleteByShipperId(id);
+		}
+
+		shipmentEventRepository.clearUpdatedBy(id);
+		hiddenShipmentRepository.deleteByUserId(id);
+		notificationRepository.deleteAllByUserId(id);
+		addressRepository.deleteAllByUserId(id);
+		refreshTokenRepository.deleteAllByUserId(id);
+		userRepository.delete(user);
 	}
 
 	@Transactional
@@ -91,11 +167,36 @@ public class AdminUserService {
 		Role role = roleRepository.findByName(roleName)
 				.orElseThrow(() -> new IllegalStateException(roleName + " role is not configured"));
 		if (!roleName.equalsIgnoreCase(user.getRole().getName())) {
+			if ("MANAGER".equalsIgnoreCase(user.getRole().getName())) {
+				userRepository.findByManager_Id(user.getId()).forEach(shipper -> shipper.setManager(null));
+			}
+			if ("SHIPPER".equalsIgnoreCase(user.getRole().getName())) {
+				user.setManager(null);
+			}
 			user.setRole(role);
 			refreshTokenRepository.revokeAllByUserId(user.getId());
 		}
 
 		return AdminUserResponse.from(userRepository.save(user));
+	}
+
+	@Transactional
+	public AdminUserResponse assignShipperToManager(Long shipperId, Long managerId) {
+		User shipper = findUser(shipperId);
+		if (!"SHIPPER".equalsIgnoreCase(shipper.getRole().getName())) {
+			throw new IllegalArgumentException("Only shipper accounts can be assigned to a manager");
+		}
+
+		User manager = managerId == null ? null : findUser(managerId);
+		if (manager != null && !"MANAGER".equalsIgnoreCase(manager.getRole().getName())) {
+			throw new IllegalArgumentException("The selected account is not a manager");
+		}
+		if (manager != null && !manager.isEnabled()) {
+			throw new IllegalArgumentException("The selected manager account is disabled");
+		}
+
+		shipper.setManager(manager);
+		return AdminUserResponse.from(userRepository.save(shipper));
 	}
 
 	@Transactional

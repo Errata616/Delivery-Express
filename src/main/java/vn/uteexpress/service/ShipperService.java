@@ -26,18 +26,33 @@ public class ShipperService {
 		this.shipmentService = shipmentService;
 	}
 
+	@Transactional(readOnly = true)
+	public boolean getAvailability(Long shipperId) {
+		return findShipperAccount(shipperId).isAvailable();
+	}
+
+	@Transactional
+	public boolean setAvailability(Long shipperId, boolean available) {
+		User shipper = findShipperAccount(shipperId);
+		shipper.setAvailable(available);
+		userRepository.save(shipper);
+		return shipper.isAvailable();
+	}
+
+	private User findShipperAccount(Long shipperId) {
+		User shipper = userRepository.findById(shipperId)
+				.orElseThrow(() -> new IllegalArgumentException("Không tìm thấy Shipper"));
+		if (shipper.getRole() == null || !"SHIPPER".equalsIgnoreCase(shipper.getRole().getName())) {
+			throw new IllegalArgumentException("User này không có quyền Shipper");
+		}
+		return shipper;
+	}
+
 	/**
 	 * Lấy Shipper và kiểm tra tài khoản.
 	 */
 	private User findShipper(Long shipperId) {
-
-		User shipper = userRepository.findById(shipperId)
-				.orElseThrow(() -> new IllegalArgumentException("Không tìm thấy Shipper"));
-
-		if (shipper.getRole() == null || !"SHIPPER".equalsIgnoreCase(shipper.getRole().getName())) {
-
-			throw new IllegalArgumentException("User này không có quyền Shipper");
-		}
+		User shipper = findShipperAccount(shipperId);
 
 		if (!shipper.isEnabled()) {
 

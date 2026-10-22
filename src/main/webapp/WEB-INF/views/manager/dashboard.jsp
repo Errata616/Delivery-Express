@@ -83,8 +83,8 @@
 		<div class="card shadow-sm mb-4">
 			<div
 				class="card-header fw-semibold d-flex justify-content-between">
-				<span>Vận đơn chờ phân công</span> <span
-					class="badge bg-warning text-dark" id="unassignedCount">0</span>
+				<span>Vận đơn hiện tại</span> <span
+					class="badge bg-warning text-dark" id="currentShipmentCount">0</span>
 			</div>
 			<div class="table-responsive">
 				<table class="table table-hover align-middle mb-0">
@@ -97,12 +97,13 @@
 							<th>Phí</th>
 							<th>COD</th>
 							<th>Ngày tạo</th>
+							<th>Trạng thái</th>
 							<th style="min-width: 260px">Phân công</th>
 						</tr>
 					</thead>
-					<tbody id="unassignedBody">
+					<tbody id="currentShipmentsBody">
 						<tr>
-							<td colspan="8" class="text-center text-muted">Đang tải...</td>
+							<td colspan="9" class="text-center text-muted">Đang tải...</td>
 						</tr>
 					</tbody>
 				</table>

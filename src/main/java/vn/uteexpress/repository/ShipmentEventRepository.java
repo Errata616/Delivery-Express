@@ -5,6 +5,9 @@ import java.util.Optional;
 
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import vn.uteexpress.entity.ShipmentEvent;
 import vn.uteexpress.entity.ShipmentStatus;
@@ -20,4 +23,8 @@ public interface ShipmentEventRepository extends JpaRepository<ShipmentEvent, Lo
 
 	// E.g. count FAILED events to enforce "return to sender after 3 failed attempts"
 	long countByShipmentIdAndStatus(Long shipmentId, ShipmentStatus status);
+
+	@Modifying
+	@Query("update ShipmentEvent e set e.updatedBy = null where e.updatedBy.id = :userId")
+	int clearUpdatedBy(@Param("userId") Long userId);
 }

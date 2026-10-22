@@ -1,5 +1,6 @@
 package vn.uteexpress.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import jakarta.persistence.*;
@@ -33,9 +34,17 @@ public class User {
 	@Column(nullable = false)
 	private boolean enabled = false;
 
+	@Column(name = "available")
+	private Boolean available = true;
+
 	@ManyToOne(fetch = FetchType.EAGER)
 	@JoinColumn(name = "role_id", nullable = false)
 	private Role role;
+
+	@JsonIgnore
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "manager_id")
+	private User manager;
 
 	public User() {
 	}
@@ -103,11 +112,27 @@ public class User {
 		this.enabled = enabled;
 	}
 
+	public boolean isAvailable() {
+		return !Boolean.FALSE.equals(available);
+	}
+
+	public void setAvailable(boolean available) {
+		this.available = available;
+	}
+
 	public Role getRole() {
 		return role;
 	}
 
 	public void setRole(Role role) {
 		this.role = role;
+	}
+
+	public User getManager() {
+		return manager;
+	}
+
+	public void setManager(User manager) {
+		this.manager = manager;
 	}
 }

@@ -22,9 +22,19 @@ public class AdminShipmentService {
 		return shipmentService.assignShipper(shipmentId, shipperId);
 	}
 
+	@Transactional
+	public Shipment assignShipper(Long shipmentId, Long shipperId, User actor) {
+		return shipmentService.assignShipper(shipmentId, shipperId, actor);
+	}
+
 	@Transactional(readOnly = true)
 	public List<Shipment> getUnassignedShipments() {
 		return shipmentService.getUnassignedShipments();
+	}
+
+	@Transactional(readOnly = true)
+	public List<Shipment> getCurrentShipments() {
+		return shipmentService.getCurrentShipments();
 	}
 
 	@Transactional(readOnly = true)

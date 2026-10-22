@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.security.access.AccessDeniedException;
 
 import vn.uteexpress.entity.Payment;
 import vn.uteexpress.entity.Role;
@@ -46,6 +47,52 @@ class ShipmentPaymentAssignmentTest {
 		ShipmentService service = new ShipmentService(shipmentRepository, orderRepository, paymentRepository,
 				mock(HiddenShipmentRepository.class), userRepository, mock(ShipmentEventRepository.class),
 				mock(ReviewRepository.class), mock(HubRepository.class),
+				mock(ShippingFeeService.class), mock(NotificationService.class));
+
+		assertThrows(IllegalArgumentException.class, () -> service.assignShipper(5L, 9L));
+		verify(shipmentRepository, never()).save(shipment);
+	}
+
+	@Test
+	void managerCannotAssignShipmentToShipperOutsideTheirTeam() {
+		ShipmentRepository shipmentRepository = mock(ShipmentRepository.class);
+		UserRepository userRepository = mock(UserRepository.class);
+		Shipment shipment = new Shipment();
+		User shipper = mock(User.class);
+		User manager = mock(User.class);
+		User actor = mock(User.class);
+		when(shipmentRepository.findById(5L)).thenReturn(Optional.of(shipment));
+		when(userRepository.findById(9L)).thenReturn(Optional.of(shipper));
+		when(shipper.getRole()).thenReturn(new Role("SHIPPER"));
+		when(shipper.isEnabled()).thenReturn(true);
+		when(shipper.isAvailable()).thenReturn(true);
+		when(shipper.getManager()).thenReturn(manager);
+		when(manager.getId()).thenReturn(2L);
+		when(actor.getId()).thenReturn(1L);
+		when(actor.getRole()).thenReturn(new Role("MANAGER"));
+
+		ShipmentService service = new ShipmentService(shipmentRepository, mock(OrderRepository.class),
+				mock(PaymentRepository.class), mock(HiddenShipmentRepository.class), userRepository,
+				mock(ShipmentEventRepository.class), mock(ReviewRepository.class), mock(HubRepository.class),
+				mock(ShippingFeeService.class), mock(NotificationService.class));
+
+		assertThrows(AccessDeniedException.class, () -> service.assignShipper(5L, 9L, actor));
+	}
+
+	@Test
+	void doesNotAssignNewShipmentToUnavailableShipper() {
+		ShipmentRepository shipmentRepository = mock(ShipmentRepository.class);
+		UserRepository userRepository = mock(UserRepository.class);
+		Shipment shipment = new Shipment();
+		User shipper = new User("shipper", "shipper@example.com", "hash", "Shipper", null, true,
+				new Role("SHIPPER"));
+		shipper.setAvailable(false);
+		when(shipmentRepository.findById(5L)).thenReturn(Optional.of(shipment));
+		when(userRepository.findById(9L)).thenReturn(Optional.of(shipper));
+
+		ShipmentService service = new ShipmentService(shipmentRepository, mock(OrderRepository.class),
+				mock(PaymentRepository.class), mock(HiddenShipmentRepository.class), userRepository,
+				mock(ShipmentEventRepository.class), mock(ReviewRepository.class), mock(HubRepository.class),
 				mock(ShippingFeeService.class), mock(NotificationService.class));
 
 		assertThrows(IllegalArgumentException.class, () -> service.assignShipper(5L, 9L));

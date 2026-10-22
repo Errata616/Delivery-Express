@@ -48,12 +48,12 @@
 							<input class="form-control" id="pickupAddress" name="pickupAddress" maxlength="255" autocomplete="street-address" required>
 						</div>
 						<div class="col-md-3">
-							<label class="form-label" for="pickupDistrict">Quận/huyện</label>
-							<input class="form-control" id="pickupDistrict" name="pickupDistrict" maxlength="100" autocomplete="address-level2">
+							<label class="form-label" for="pickupDistrict">Quận/huyện TP. Hồ Chí Minh</label>
+							<input class="form-control" id="pickupDistrict" name="pickupDistrict" list="hcmDistrictList" maxlength="100" autocomplete="address-level2" required>
 						</div>
 						<div class="col-md-3">
 							<label class="form-label" for="pickupProvince">Tỉnh/thành phố</label>
-							<input class="form-control" id="pickupProvince" name="pickupProvince" maxlength="100" autocomplete="address-level1" required>
+							<input class="form-control" id="pickupProvince" name="pickupProvince" value="TP. Hồ Chí Minh" maxlength="100" autocomplete="address-level1" readonly required>
 						</div>
 					</div>
 				</section>
@@ -74,12 +74,12 @@
 							<input class="form-control" id="deliveryAddress" name="deliveryAddress" maxlength="255" required>
 						</div>
 						<div class="col-md-3">
-							<label class="form-label" for="deliveryDistrict">Quận/huyện</label>
-							<input class="form-control" id="deliveryDistrict" name="deliveryDistrict" maxlength="100">
+							<label class="form-label" for="deliveryDistrict">Quận/huyện TP. Hồ Chí Minh</label>
+							<input class="form-control" id="deliveryDistrict" name="deliveryDistrict" list="hcmDistrictList" maxlength="100" required>
 						</div>
 						<div class="col-md-3">
 							<label class="form-label" for="deliveryProvince">Tỉnh/thành phố</label>
-							<input class="form-control" id="deliveryProvince" name="deliveryProvince" maxlength="100" required>
+							<input class="form-control" id="deliveryProvince" name="deliveryProvince" value="TP. Hồ Chí Minh" maxlength="100" readonly required>
 						</div>
 					</div>
 				</section>
@@ -133,6 +133,27 @@
 				<p class="form-text mt-3 mb-0">Phí sẽ được tính lại khi tạo đơn. Bạn có thể bổ sung kích thước kiện hàng để tính khối lượng quy đổi.</p>
 			</div>
 		</form>
+		<datalist id="hcmDistrictList">
+			<option value="Quận 1">
+			<option value="Quận 2">
+			<option value="Quận 3">
+			<option value="Quận 4">
+			<option value="Quận 5">
+			<option value="Quận 6">
+			<option value="Quận 7">
+			<option value="Quận 8">
+			<option value="Quận 9">
+			<option value="Quận 10">
+			<option value="Quận 11">
+			<option value="Quận 12">
+			<option value="Thủ Đức">
+			<option value="Gò Vấp">
+			<option value="Bình Thạnh">
+			<option value="Phú Nhuận">
+			<option value="Tân Bình">
+			<option value="Tân Phú">
+			<option value="Bình Tân">
+		</datalist>
 	</main>
 
 	<script>

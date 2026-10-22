@@ -39,6 +39,16 @@ public class TrackingResponse {
 	private LocalDateTime createdAt;
 	private LocalDateTime deliveredAt;
 
+	private String pickupDistrict;
+
+	public String getPickupDistrict() {
+		return pickupDistrict;
+	}
+
+	public void setPickupDistrict(String pickupDistrict) {
+		this.pickupDistrict = pickupDistrict;
+	}
+
 	// Newest first
 	private List<TrackingEvent> events = new ArrayList<>();
 
