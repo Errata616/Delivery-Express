@@ -3,6 +3,8 @@ package vn.uteexpress.service;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpStatus;
@@ -13,8 +15,6 @@ import vn.uteexpress.dto.RouteResponse;
 import vn.uteexpress.routing.DistrictGraph;
 import vn.uteexpress.routing.DistrictGraph.District;
 import vn.uteexpress.routing.DistrictGraph.Route;
-
-import java.util.Optional;
 
 @Service
 public class RouteService {
@@ -45,6 +45,14 @@ public class RouteService {
 				HttpStatus.NOT_FOUND, "No route between " + start.name() + " and " + goal.name()));
 
 		return new RouteResponse(start, goal, route.path(), route.hops(), route.totalWeight());
+	}
+
+	public Optional<Route> shortestPath(District start, District goal, Set<String> allowedDistrictCodes) {
+		return graph.shortestPath(start, goal, allowedDistrictCodes);
+	}
+
+	public boolean areAdjacent(District first, District second) {
+		return graph.areAdjacent(first, second);
 	}
 
 	public Optional<District> resolve(String text) {

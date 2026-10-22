@@ -25,6 +25,7 @@ import vn.uteexpress.repository.PaymentRepository;
 import vn.uteexpress.repository.ReviewRepository;
 import vn.uteexpress.repository.ShipmentEventRepository;
 import vn.uteexpress.repository.ShipmentRepository;
+import vn.uteexpress.repository.ShipperZoneRepository;
 import vn.uteexpress.repository.UserRepository;
 
 class ShipmentPaymentAssignmentTest {
@@ -47,7 +48,8 @@ class ShipmentPaymentAssignmentTest {
 		ShipmentService service = new ShipmentService(shipmentRepository, orderRepository, paymentRepository,
 				mock(HiddenShipmentRepository.class), userRepository, mock(ShipmentEventRepository.class),
 				mock(ReviewRepository.class), mock(HubRepository.class),
-				mock(ShippingFeeService.class), mock(NotificationService.class));
+				mock(ShippingFeeService.class), mock(NotificationService.class), mock(ShipperZoneRepository.class),
+				mock(RouteService.class));
 
 		assertThrows(IllegalArgumentException.class, () -> service.assignShipper(5L, 9L));
 		verify(shipmentRepository, never()).save(shipment);
@@ -74,7 +76,8 @@ class ShipmentPaymentAssignmentTest {
 		ShipmentService service = new ShipmentService(shipmentRepository, mock(OrderRepository.class),
 				mock(PaymentRepository.class), mock(HiddenShipmentRepository.class), userRepository,
 				mock(ShipmentEventRepository.class), mock(ReviewRepository.class), mock(HubRepository.class),
-				mock(ShippingFeeService.class), mock(NotificationService.class));
+				mock(ShippingFeeService.class), mock(NotificationService.class), mock(ShipperZoneRepository.class),
+				mock(RouteService.class));
 
 		assertThrows(AccessDeniedException.class, () -> service.assignShipper(5L, 9L, actor));
 	}
@@ -93,7 +96,8 @@ class ShipmentPaymentAssignmentTest {
 		ShipmentService service = new ShipmentService(shipmentRepository, mock(OrderRepository.class),
 				mock(PaymentRepository.class), mock(HiddenShipmentRepository.class), userRepository,
 				mock(ShipmentEventRepository.class), mock(ReviewRepository.class), mock(HubRepository.class),
-				mock(ShippingFeeService.class), mock(NotificationService.class));
+				mock(ShippingFeeService.class), mock(NotificationService.class), mock(ShipperZoneRepository.class),
+				mock(RouteService.class));
 
 		assertThrows(IllegalArgumentException.class, () -> service.assignShipper(5L, 9L));
 		verify(shipmentRepository, never()).save(shipment);
@@ -120,7 +124,7 @@ class ShipmentPaymentAssignmentTest {
 		ShipmentService service = new ShipmentService(shipmentRepository, orderRepository, paymentRepository,
 				mock(HiddenShipmentRepository.class), userRepository, shipmentEventRepository,
 				mock(ReviewRepository.class), hubRepository, mock(ShippingFeeService.class),
-				notificationService);
+				notificationService, mock(ShipperZoneRepository.class), mock(RouteService.class));
 
 		service.updateStatus(5L, ShipmentStatus.FAILED);
 

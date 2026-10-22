@@ -2,6 +2,7 @@ package vn.uteexpress.entity;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import jakarta.persistence.*;
 
@@ -79,6 +80,12 @@ public class Shipment {
 
 	@Column(length = 100)
 	private String deliveryProvince;
+
+	@Column(name = "planned_route", length = 1000)
+	private String plannedRoute;
+
+	@Column(name = "current_route_index")
+	private Integer currentRouteIndex;
 
 	// ---- package ----
 
@@ -261,6 +268,30 @@ public class Shipment {
 
 	public void setDeliveryProvince(String deliveryProvince) {
 		this.deliveryProvince = deliveryProvince;
+	}
+
+	public List<String> getPlannedRouteDistricts() {
+		return plannedRoute == null || plannedRoute.isBlank() ? List.of() : List.of(plannedRoute.split(","));
+	}
+
+	public void setPlannedRouteDistricts(List<String> districtCodes) {
+		plannedRoute = districtCodes == null || districtCodes.isEmpty() ? null : String.join(",", districtCodes);
+		currentRouteIndex = districtCodes == null || districtCodes.isEmpty() ? null : 0;
+	}
+
+	public Integer getCurrentRouteIndex() {
+		return currentRouteIndex;
+	}
+
+	public void setCurrentRouteIndex(Integer currentRouteIndex) {
+		this.currentRouteIndex = currentRouteIndex;
+	}
+
+	public String getCurrentDistrict() {
+		List<String> route = getPlannedRouteDistricts();
+		return currentRouteIndex == null || currentRouteIndex < 0 || currentRouteIndex >= route.size()
+				? null
+				: route.get(currentRouteIndex);
 	}
 
 	public String getItemDescription() {

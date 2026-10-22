@@ -26,6 +26,7 @@ import vn.uteexpress.repository.PaymentRepository;
 import vn.uteexpress.repository.ReviewRepository;
 import vn.uteexpress.repository.ShipmentEventRepository;
 import vn.uteexpress.repository.ShipmentRepository;
+import vn.uteexpress.repository.ShipperZoneRepository;
 import vn.uteexpress.repository.UserRepository;
 
 class ShipmentDeletionTest {
@@ -46,7 +47,8 @@ class ShipmentDeletionTest {
 		List<Shipment> current = new ShipmentService(shipmentRepository, mock(OrderRepository.class),
 				paymentRepository, mock(HiddenShipmentRepository.class), mock(UserRepository.class),
 				mock(ShipmentEventRepository.class), mock(ReviewRepository.class), mock(HubRepository.class),
-				mock(ShippingFeeService.class), mock(NotificationService.class)).getCurrentShipments();
+				mock(ShippingFeeService.class), mock(NotificationService.class), mock(ShipperZoneRepository.class),
+				mock(RouteService.class)).getCurrentShipments();
 
 		assertEquals(List.of(2L, 1L), current.stream().map(Shipment::getId).toList());
 	}
@@ -70,7 +72,8 @@ class ShipmentDeletionTest {
 
 		new ShipmentService(shipmentRepository, mock(OrderRepository.class), paymentRepository,
 				hiddenShipmentRepository, mock(UserRepository.class), eventRepository, reviewRepository,
-				mock(HubRepository.class), mock(ShippingFeeService.class), mock(NotificationService.class))
+				mock(HubRepository.class), mock(ShippingFeeService.class), mock(NotificationService.class),
+				mock(ShipperZoneRepository.class), mock(RouteService.class))
 				.deleteCompletedShipment(9L);
 
 		verify(reviewRepository).delete(review);
@@ -98,7 +101,8 @@ class ShipmentDeletionTest {
 
 		new ShipmentService(shipmentRepository, orderRepository, paymentRepository, mock(HiddenShipmentRepository.class),
 				mock(UserRepository.class), mock(ShipmentEventRepository.class), mock(ReviewRepository.class), mock(HubRepository.class),
-				mock(ShippingFeeService.class), mock(NotificationService.class)).deleteCompletedShipment(9L);
+				mock(ShippingFeeService.class), mock(NotificationService.class), mock(ShipperZoneRepository.class),
+				mock(RouteService.class)).deleteCompletedShipment(9L);
 
 		verify(shipmentRepository).delete(shipment);
 		verify(paymentRepository).deleteAll(List.of(payment));
@@ -143,6 +147,7 @@ class ShipmentDeletionTest {
 			ShipmentEventRepository eventRepository, ReviewRepository reviewRepository) {
 		return new ShipmentService(shipmentRepository, mock(OrderRepository.class), paymentRepository,
 				mock(HiddenShipmentRepository.class), mock(UserRepository.class), eventRepository, reviewRepository, mock(HubRepository.class),
-				mock(ShippingFeeService.class), mock(NotificationService.class));
+				mock(ShippingFeeService.class), mock(NotificationService.class), mock(ShipperZoneRepository.class),
+				mock(RouteService.class));
 	}
 }

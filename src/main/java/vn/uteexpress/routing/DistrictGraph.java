@@ -15,6 +15,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.PriorityQueue;
+import java.util.Set;
 import java.util.TreeMap;
 
 /**
@@ -90,7 +91,26 @@ public final class DistrictGraph {
 		return shortestPath(start.get(), goal.get());
 	}
 
+	public Optional<Route> shortestPath(String from, String to, Set<String> allowedDistrictCodes) {
+		Optional<District> start = resolve(from);
+		Optional<District> goal = resolve(to);
+		if (start.isEmpty() || goal.isEmpty()) {
+			return Optional.empty();
+		}
+		return shortestPath(start.get(), goal.get(), allowedDistrictCodes);
+	}
+
 	public Optional<Route> shortestPath(District start, District goal) {
+		return shortestPath(start, goal, byCode.keySet());
+	}
+
+	/** Finds the shortest route using only districts in {@code allowedDistrictCodes}. */
+	public Optional<Route> shortestPath(District start, District goal, Set<String> allowedDistrictCodes) {
+		if (start == null || goal == null || allowedDistrictCodes == null
+				|| !allowedDistrictCodes.contains(start.code()) || !allowedDistrictCodes.contains(goal.code())) {
+			return Optional.empty();
+		}
+
 		Map<String, Double> dist = new HashMap<>();
 		Map<String, String> prev = new HashMap<>();
 		PriorityQueue<Map.Entry<String, Double>> queue = new PriorityQueue<>(Map.Entry.comparingByValue());
@@ -109,6 +129,9 @@ public final class DistrictGraph {
 				break;
 			}
 			for (Map.Entry<String, Double> edge : adjacency.getOrDefault(code, Map.of()).entrySet()) {
+				if (!allowedDistrictCodes.contains(edge.getKey())) {
+					continue;
+				}
 				double candidate = current.getValue() + edge.getValue();
 				if (candidate < dist.getOrDefault(edge.getKey(), Double.MAX_VALUE)) {
 					dist.put(edge.getKey(), candidate);
@@ -127,6 +150,11 @@ public final class DistrictGraph {
 			path.addFirst(byCode.get(at));
 		}
 		return Optional.of(new Route(List.copyOf(path), path.size() - 1, dist.get(goal.code())));
+	}
+
+	public boolean areAdjacent(District first, District second) {
+		return first != null && second != null
+				&& adjacency.getOrDefault(first.code(), Map.of()).containsKey(second.code());
 	}
 
 	// ---------- loading ----------

@@ -3,11 +3,16 @@ package vn.uteexpress.service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.access.AccessDeniedException;
@@ -36,7 +41,11 @@ import vn.uteexpress.repository.PaymentRepository;
 import vn.uteexpress.repository.ReviewRepository;
 import vn.uteexpress.repository.ShipmentEventRepository;
 import vn.uteexpress.repository.ShipmentRepository;
+import vn.uteexpress.repository.ShipperZoneRepository;
 import vn.uteexpress.repository.UserRepository;
+import vn.uteexpress.routing.DistrictGraph;
+import vn.uteexpress.routing.DistrictGraph.District;
+import vn.uteexpress.routing.DistrictGraph.Route;
 
 @Service
 public class ShipmentService {
@@ -51,12 +60,15 @@ public class ShipmentService {
 	private final HubRepository hubRepository;
 	private final ShippingFeeService shippingFeeService;
 	private final NotificationService notificationService; // NEW
+	private final ShipperZoneRepository shipperZoneRepository;
+	private final RouteService routeService;
 
 	public ShipmentService(ShipmentRepository shipmentRepository, OrderRepository orderRepository,
 			PaymentRepository paymentRepository, HiddenShipmentRepository hiddenShipmentRepository,
 			UserRepository userRepository, ShipmentEventRepository shipmentEventRepository,
 			ReviewRepository reviewRepository, HubRepository hubRepository, ShippingFeeService shippingFeeService,
-			NotificationService notificationService) { // NEW
+			NotificationService notificationService, ShipperZoneRepository shipperZoneRepository,
+			RouteService routeService) { // NEW
 
 		this.shipmentRepository = shipmentRepository;
 		this.orderRepository = orderRepository;
@@ -68,6 +80,8 @@ public class ShipmentService {
 		this.hubRepository = hubRepository;
 		this.shippingFeeService = shippingFeeService;
 		this.notificationService = notificationService; // NEW
+		this.shipperZoneRepository = shipperZoneRepository;
+		this.routeService = routeService;
 	}
 
 	// =========================================================
@@ -192,6 +206,7 @@ public class ShipmentService {
 			throw new IllegalArgumentException("Vui lòng thanh toán phí vận chuyển trước khi phân công");
 		}
 
+		planShipmentRoute(shipment, shipper);
 		shipment.setShipper(shipper);
 		shipment.setStatus(ShipmentStatus.ASSIGNED);
 		shipment.setAssignedAt(LocalDateTime.now());
@@ -213,6 +228,87 @@ public class ShipmentService {
 		notificationService.notify(shipper, "Đơn mới được giao cho bạn", "Vận đơn " + saved.getTrackingCode(),
 				NotificationType.SHIPMENT_ASSIGNED, saved.getId());
 
+		return saved;
+	}
+
+	@Transactional
+	public Shipment updateShipmentDistrict(Long shipperId, Long shipmentId, String districtName) {
+		Shipment shipment = findShipment(shipmentId);
+		if (shipment.getShipper() == null || !shipperId.equals(shipment.getShipper().getId())) {
+			throw new AccessDeniedException("Vận đơn không thuộc shipper hiện tại");
+		}
+		if (shipment.getStatus() != ShipmentStatus.PICKED_UP
+				&& shipment.getStatus() != ShipmentStatus.DELIVERING) {
+			throw new IllegalArgumentException("Chỉ có thể cập nhật quận khi vận đơn đã được lấy");
+		}
+
+		List<String> plannedRoute = shipment.getPlannedRouteDistricts();
+		Integer routeIndex = shipment.getCurrentRouteIndex();
+		if (plannedRoute.isEmpty() || routeIndex == null || routeIndex < 0
+				|| routeIndex >= plannedRoute.size() - 1) {
+			throw new IllegalArgumentException("Vận đơn không có quận tiếp theo trong lộ trình");
+		}
+
+		District previousDistrict = routeService.resolve(plannedRoute.get(routeIndex))
+				.orElseThrow(() -> new IllegalStateException("Quận hiện tại không còn trong dữ liệu lộ trình"));
+		District updatedDistrict = routeService.resolve(districtName)
+				.orElseThrow(() -> new IllegalArgumentException("Không nhận diện được quận/huyện: " + districtName));
+		if (!routeService.areAdjacent(previousDistrict, updatedDistrict)) {
+			throw new IllegalArgumentException("Quận cập nhật không liền kề với vị trí hiện tại");
+		}
+
+		District destination = routeService.resolve(shipment.getDeliveryDistrict())
+				.orElseThrow(() -> new IllegalStateException("Không nhận diện được quận giao hàng"));
+		ShipperRoutingData routingData = activeShipperRoutingData();
+		if (!hasActiveShipperForDistrict(destination, routingData)) {
+			throw new IllegalArgumentException("Không có shipper đang hoạt động phụ trách quận giao hàng");
+		}
+
+		Set<String> allowedDistricts = traversableDistricts(routingData);
+		allowedDistricts.add(previousDistrict.code());
+
+		Route remainingRoute = routeService.shortestPath(previousDistrict, destination, allowedDistricts)
+				.orElseThrow(() -> new IllegalArgumentException(
+						"Không còn lộ trình giao hàng qua các quận có shipper đang hoạt động"));
+		if (remainingRoute.path().size() < 2
+				|| !remainingRoute.path().get(1).code().equals(updatedDistrict.code())) {
+			List<String> replannedRoute = new ArrayList<>(plannedRoute.subList(0, routeIndex + 1));
+			remainingRoute.path().stream().skip(1).map(District::code).forEach(replannedRoute::add);
+			shipment.setPlannedRouteDistricts(replannedRoute);
+			shipment.setCurrentRouteIndex(routeIndex);
+			return shipmentRepository.save(shipment);
+		}
+
+		User nextShipper = selectShipperForDistrict(updatedDistrict, shipment.getShipper(), routingData);
+		List<String> updatedRoute = new ArrayList<>(plannedRoute.subList(0, routeIndex + 1));
+		remainingRoute.path().stream().skip(1).map(District::code).forEach(updatedRoute::add);
+		shipment.setPlannedRouteDistricts(updatedRoute);
+		shipment.setCurrentRouteIndex(routeIndex + 1);
+		boolean handedOff = !shipment.getShipper().getId().equals(nextShipper.getId());
+		shipment.setShipper(nextShipper);
+
+		if (shipment.getStatus() == ShipmentStatus.PICKED_UP) {
+			shipment.setStatus(ShipmentStatus.DELIVERING);
+		}
+		if (shipment.getOrder() != null) {
+			shipment.getOrder().setStatus(OrderStatus.SHIPPING);
+			orderRepository.save(shipment.getOrder());
+		}
+
+		String eventNote = "Đã đến " + updatedDistrict.name();
+		if (handedOff) {
+			eventNote += ". Đơn hàng đã được lấy bởi shipper " + displayName(nextShipper);
+		}
+
+		Shipment saved = shipmentRepository.save(shipment);
+		recordEvent(saved, handedOff ? ShipmentStatus.PICKED_UP : saved.getStatus(), null, eventNote,
+				getActorOrNull());
+		notifyCustomer(saved, eventNote);
+		if (handedOff) {
+			notificationService.notify(nextShipper, "Vận đơn được bàn giao cho bạn",
+					"Vận đơn " + saved.getTrackingCode() + " đang ở " + updatedDistrict.name(),
+					NotificationType.SHIPMENT_ASSIGNED, saved.getId());
+		}
 		return saved;
 	}
 
@@ -250,6 +346,12 @@ public class ShipmentService {
 		Shipment shipment = findShipment(shipmentId);
 
 		ShipmentStatus currentStatus = shipment.getStatus();
+		if (newStatus == ShipmentStatus.DELIVERED && !shipment.getPlannedRouteDistricts().isEmpty()) {
+			Integer routeIndex = shipment.getCurrentRouteIndex();
+			if (routeIndex == null || routeIndex != shipment.getPlannedRouteDistricts().size() - 1) {
+				throw new IllegalArgumentException("Chỉ có thể giao thành công khi đã đến quận nhận hàng");
+			}
+		}
 
 		validateStatusTransition(currentStatus, newStatus);
 
@@ -607,6 +709,103 @@ public class ShipmentService {
 	}
 
 	private record RefundedPayments(Set<Long> shipmentIds, Set<Long> orderIds) {
+	}
+
+	private void planShipmentRoute(Shipment shipment, User selectedShipper) {
+		boolean pickupInHcm = isHcmProvince(shipment.getPickupProvince());
+		boolean deliveryInHcm = isHcmProvince(shipment.getDeliveryProvince());
+		if (!pickupInHcm || !deliveryInHcm) {
+			return;
+		}
+
+		District origin = routeService.resolve(shipment.getPickupDistrict())
+				.orElseThrow(() -> new IllegalArgumentException("Không nhận diện được quận lấy hàng"));
+		District destination = routeService.resolve(shipment.getDeliveryDistrict())
+				.orElseThrow(() -> new IllegalArgumentException("Không nhận diện được quận giao hàng"));
+		ShipperRoutingData routingData = activeShipperRoutingData();
+		Set<String> selectedZones = routingData.zonesByShipper().getOrDefault(selectedShipper.getId(), Set.of());
+		if (!selectedZones.contains(origin.code())) {
+			throw new IllegalArgumentException("Shipper được chọn không phụ trách quận lấy hàng");
+		}
+		if (!hasActiveShipperForDistrict(destination, routingData)) {
+			throw new IllegalArgumentException("Không có shipper đang hoạt động phụ trách quận giao hàng");
+		}
+
+		Set<String> allowedDistricts = traversableDistricts(routingData);
+		Route route = routeService.shortestPath(origin, destination, allowedDistricts)
+				.orElseThrow(() -> new IllegalArgumentException(
+						"Không tìm thấy lộ trình qua các quận có shipper đang hoạt động"));
+		shipment.setPlannedRouteDistricts(route.path().stream().map(District::code).toList());
+	}
+
+	private ShipperRoutingData activeShipperRoutingData() {
+		List<User> allShippers = userRepository.findByRoleName("SHIPPER");
+		List<User> activeShippers = allShippers.stream()
+				.filter(User::isEnabled)
+				.filter(User::isAvailable)
+				.toList();
+		if (allShippers.isEmpty()) {
+			return new ShipperRoutingData(List.of(), Map.of(), Map.of());
+		}
+
+		Set<Long> activeIds = activeShippers.stream().map(User::getId).collect(Collectors.toSet());
+		List<Long> shipperIds = allShippers.stream().map(User::getId).toList();
+		Map<Long, Set<String>> zonesByShipper = new HashMap<>();
+		Map<Long, Set<String>> allZonesByShipper = new HashMap<>();
+		for (var zone : shipperZoneRepository.findByShipperIdIn(shipperIds)) {
+			Long zoneShipperId = zone.getShipper().getId();
+			allZonesByShipper.computeIfAbsent(zoneShipperId, ignored -> new HashSet<>()).add(zone.getDistrictCode());
+			if (activeIds.contains(zoneShipperId)) {
+				zonesByShipper.computeIfAbsent(zoneShipperId, ignored -> new HashSet<>()).add(zone.getDistrictCode());
+			}
+		}
+		return new ShipperRoutingData(activeShippers, zonesByShipper, allZonesByShipper);
+	}
+
+	private User selectShipperForDistrict(District district, User currentShipper, ShipperRoutingData routingData) {
+		if (currentShipper.isEnabled() && currentShipper.isAvailable()
+				&& routingData.zonesByShipper().getOrDefault(currentShipper.getId(), Set.of())
+						.contains(district.code())) {
+			return currentShipper;
+		}
+		Optional<User> availableShipper = routingData.shippers().stream()
+				.filter(shipper -> routingData.zonesByShipper().getOrDefault(shipper.getId(), Set.of())
+						.contains(district.code()))
+				.min(Comparator.comparing(User::getId));
+		if (availableShipper.isPresent()) {
+			return availableShipper.get();
+		}
+		if (routingData.allZonesByShipper().values().stream().noneMatch(zones -> zones.contains(district.code()))) {
+			return currentShipper;
+		}
+		throw new IllegalArgumentException("Không có shipper đang hoạt động phụ trách quận " + district.name());
+	}
+
+	private Set<String> traversableDistricts(ShipperRoutingData routingData) {
+		Set<String> activelyStaffed = routingData.zonesByShipper().values().stream()
+				.flatMap(Set::stream).collect(Collectors.toSet());
+		Set<String> assignedDistricts = routingData.allZonesByShipper().values().stream()
+				.flatMap(Set::stream).collect(Collectors.toSet());
+		Set<String> closedDistricts = new HashSet<>(assignedDistricts);
+		closedDistricts.removeAll(activelyStaffed);
+		Set<String> traversable = routeService.districts().stream()
+				.map(District::code).collect(Collectors.toSet());
+		traversable.removeAll(closedDistricts);
+		return traversable;
+	}
+
+	private boolean hasActiveShipperForDistrict(District district, ShipperRoutingData routingData) {
+		return routingData.zonesByShipper().values().stream()
+				.anyMatch(zones -> zones.contains(district.code()));
+	}
+
+	private static boolean isHcmProvince(String province) {
+		String normalized = DistrictGraph.normalize(province);
+		return normalized.contains("ho chi minh") || normalized.contains("hcm") || normalized.contains("sai gon");
+	}
+
+	private record ShipperRoutingData(List<User> shippers, Map<Long, Set<String>> zonesByShipper,
+			Map<Long, Set<String>> allZonesByShipper) {
 	}
 
 	// =========================================================

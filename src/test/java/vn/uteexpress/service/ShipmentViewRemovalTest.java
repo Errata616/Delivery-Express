@@ -24,6 +24,7 @@ import vn.uteexpress.repository.PaymentRepository;
 import vn.uteexpress.repository.ReviewRepository;
 import vn.uteexpress.repository.ShipmentEventRepository;
 import vn.uteexpress.repository.ShipmentRepository;
+import vn.uteexpress.repository.ShipperZoneRepository;
 import vn.uteexpress.repository.UserRepository;
 
 class ShipmentViewRemovalTest {
@@ -109,6 +110,6 @@ class ShipmentViewRemovalTest {
 		return new ShipmentService(shipmentRepository, mock(OrderRepository.class), mock(PaymentRepository.class),
 				hiddenRepository, mock(UserRepository.class), mock(ShipmentEventRepository.class),
 				mock(ReviewRepository.class), mock(HubRepository.class), mock(ShippingFeeService.class),
-				mock(NotificationService.class));
+				mock(NotificationService.class), mock(ShipperZoneRepository.class), mock(RouteService.class));
 	}
 }

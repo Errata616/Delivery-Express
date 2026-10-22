@@ -64,6 +64,19 @@ public class ShipmentController {
 		return ResponseEntity.ok(shipmentService.updateStatus(shipmentId, status, note));
 	}
 
+	@PutMapping("/{shipmentId}/district")
+	public ResponseEntity<Shipment> updateDistrict(@PathVariable Long shipmentId, @RequestParam String district,
+			Authentication authentication) {
+		User currentUser = getCurrentUser(authentication);
+		checkCanUpdateShipmentStatus(shipmentId, currentUser);
+		Shipment shipment = shipmentService.getById(shipmentId);
+		if (shipment.getShipper() == null) {
+			throw new IllegalArgumentException("Vận đơn chưa được phân công cho shipper");
+		}
+		return ResponseEntity.ok(shipmentService.updateShipmentDistrict(
+				shipment.getShipper().getId(), shipmentId, district));
+	}
+
 	// =========================================================
 	// GET SHIPMENT
 	// =========================================================

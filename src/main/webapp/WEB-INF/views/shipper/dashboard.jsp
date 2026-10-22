@@ -256,8 +256,18 @@
 				return true;
 			}
 
-			function nextAction(status) {
+			function nextAction(shipment) {
+				var status = shipment.status;
 				if (status === "ASSIGNED") { return { status: "PICKED_UP", label: "Đã lấy hàng" }; }
+				var route = Array.isArray(shipment.plannedRouteDistricts) ? shipment.plannedRouteDistricts : [];
+				var routeIndex = Number(shipment.currentRouteIndex);
+				if (route.length && (status === "PICKED_UP" || status === "DELIVERING")) {
+					if (routeIndex < route.length - 1) {
+						return { district: route[routeIndex + 1], label: "Đã đến " + route[routeIndex + 1] };
+					}
+					if (status === "PICKED_UP") { return { status: "DELIVERING", label: "Bắt đầu giao" }; }
+					return { status: "DELIVERED", label: "Giao thành công" };
+				}
 				if (status === "PICKED_UP") { return { status: "DELIVERING", label: "Bắt đầu giao" }; }
 				if (status === "DELIVERING") { return { status: "DELIVERED", label: "Giao thành công" }; }
 				return null;
@@ -278,6 +288,16 @@
 				button.setAttribute("data-shipment-id", shipment.id);
 				button.setAttribute("data-next-status", status);
 				if (confirmMessage) { button.setAttribute("data-confirm-message", confirmMessage); }
+				container.appendChild(button);
+			}
+
+			function addDistrictButton(container, shipment, district) {
+				var button = document.createElement("button");
+				button.type = "button";
+				button.className = "btn btn-sm btn-primary";
+				button.textContent = "Đã đến " + district;
+				button.setAttribute("data-shipment-id", shipment.id);
+				button.setAttribute("data-next-district", district);
 				container.appendChild(button);
 			}
 
@@ -340,13 +360,31 @@
 					deliveredAt.textContent = "Hoàn tất: " + formatDate(shipment.deliveredAt);
 					statusCell.appendChild(deliveredAt);
 				}
+				if (Array.isArray(shipment.plannedRouteDistricts) && shipment.plannedRouteDistricts.length) {
+					var route = document.createElement("div");
+					route.className = "small text-muted mt-1";
+					route.textContent = "Lộ trình: " + shipment.plannedRouteDistricts.join(" → ");
+					statusCell.appendChild(route);
+					if (shipment.currentDistrict) {
+						var currentDistrict = document.createElement("div");
+						currentDistrict.className = "small text-muted";
+						currentDistrict.textContent = "Hiện tại: " + shipment.currentDistrict;
+						statusCell.appendChild(currentDistrict);
+					}
+				}
 
 				var actionCell = appendCell(row, "text-end");
-				var action = nextAction(shipment.status);
+				var action = nextAction(shipment);
 				if (action) {
-					addActionButton(actionCell, shipment, action.status, action.label, "btn-primary");
-					addActionButton(actionCell, shipment, "FAILED", "Giao thất bại", "btn-outline-danger mt-1",
-						"Xác nhận đánh dấu vận đơn này giao thất bại?");
+					if (action.district) {
+						addDistrictButton(actionCell, shipment, action.district);
+					} else {
+						addActionButton(actionCell, shipment, action.status, action.label, "btn-primary");
+					}
+					if (!action.district) {
+						addActionButton(actionCell, shipment, "FAILED", "Giao thất bại", "btn-outline-danger mt-1",
+							"Xác nhận đánh dấu vận đơn này giao thất bại?");
+					}
 				} else {
 					actionCell.textContent = "";
 				}
@@ -443,6 +481,25 @@
 				}
 			}
 
+			async function updateDistrict(button) {
+				var shipmentId = button.getAttribute("data-shipment-id");
+				var district = button.getAttribute("data-next-district");
+				button.disabled = true;
+				try {
+					var updatedShipment = await api("/api/shipments/" + encodeURIComponent(shipmentId) + "/district?district="
+						+ encodeURIComponent(district), { method: "PUT" });
+					if (updatedShipment.currentDistrict !== district) {
+						showAlert("info", "Tình trạng hoạt động của shipper đã thay đổi; hệ thống đã tìm lộ trình mới.");
+					} else {
+						showAlert("success", "Đã cập nhật vị trí và bàn giao vận đơn theo lộ trình.");
+					}
+					await loadShipments();
+				} catch (error) {
+					showAlert("danger", "Không cập nhật được quận hiện tại: " + error.message);
+					button.disabled = false;
+				}
+			}
+
 			document.getElementById("whoami").textContent = user.username;
 			document.getElementById("logoutBtn").addEventListener("click", function () {
 				window.Auth.logout();
@@ -464,6 +521,11 @@
 				var hideButton = event.target.closest("button[data-hide-shipment-id]");
 				if (hideButton) {
 					hideShipment(hideButton);
+					return;
+				}
+				var districtButton = event.target.closest("button[data-next-district]");
+				if (districtButton) {
+					updateDistrict(districtButton);
 					return;
 				}
 				var button = event.target.closest("button[data-shipment-id]");
