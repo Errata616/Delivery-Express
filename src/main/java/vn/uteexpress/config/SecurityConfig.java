@@ -68,11 +68,15 @@ public class SecurityConfig {
 	@Bean
 	@Order(2)
 	public SecurityFilterChain webSecurityFilterChain(HttpSecurity http) throws Exception {
-
-		http.authorizeHttpRequests(auth -> auth
+        
+		http
+		.csrf(csrf -> csrf.ignoringRequestMatchers("/ws/**"))
+        .headers(h -> h.frameOptions(f -> f.sameOrigin()))
+		.authorizeHttpRequests(auth -> auth
 				// JSP FORWARD / ERROR
 				.dispatcherTypeMatchers(DispatcherType.FORWARD, DispatcherType.ERROR).permitAll()
 				// PUBLIC WEB
+				.requestMatchers("/ws/**").permitAll()
 				.requestMatchers("/", "/login", "/register", "/my-orders", "/booking", "/js/**", "/css/**").permitAll()
 				// PAGE SHELLS: no data in them. admin.js/auth.js guard the view and the
 				// /api/** chain enforces the real role checks on every data request.

@@ -70,6 +70,12 @@ account's refresh tokens, and disabled users' existing access tokens are rejecte
 The shared shipment API also permits admins and managers to assign shippers and
 list unassigned shipments.
 
+On the manager dashboard, an unassigned Ho Chi Minh City shipment with a
+recognized pickup district is shown only when at least one enabled, available
+shipper on that manager's team is assigned to that district. Shipments already
+assigned to the manager's shippers remain visible. The admin dashboard is not
+filtered by this rule.
+
 ## Dashboard statistics (ADMIN or MANAGER)
 
 - `GET /api/statistics` returns dashboard totals and status/revenue summaries.

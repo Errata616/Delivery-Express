@@ -35,9 +35,6 @@
 				<h1 class="h2 mb-1">Đơn hàng của tôi</h1>
 				<p class="text-muted mb-0">Theo dõi và thanh toán các vận đơn bạn đã tạo.</p>
 			</div>
-			<a class="btn btn-outline-primary" href="${pageContext.request.contextPath}/">
-				<i class="bi bi-house me-1" aria-hidden="true"></i>Về trang chủ
-			</a>
 		</div>
 
 		<div id="orders-message" class="alert d-none" role="status" aria-live="polite"></div>

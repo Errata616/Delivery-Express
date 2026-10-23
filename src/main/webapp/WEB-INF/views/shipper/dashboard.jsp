@@ -47,8 +47,8 @@
 				<h1 class="h3 mb-1">Vận đơn được giao cho tôi</h1>
 				<p class="text-muted mb-0">Cập nhật trạng thái khi nhận hàng và hoàn tất giao hàng.</p>
 			</div>
-			<button id="refreshBtn" type="button" class="btn btn-outline-primary">
-				<span aria-hidden="true">&#8635;</span> Làm mới
+			<button id="refreshBtn" type="button" class="btn btn-sm btn-outline-primary">
+				Làm mới
 			</button>
 		</div>
 

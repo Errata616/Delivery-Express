@@ -38,8 +38,6 @@
 
 		<div class="d-flex justify-content-between align-items-center mb-3">
 			<h4 class="mb-0">Tổng quan vận hành</h4>
-			<button id="refreshBtn" type="button"
-				class="btn btn-sm btn-outline-primary">Làm mới</button>
 		</div>
 
 		<div class="row g-3 mb-4">
@@ -82,7 +80,7 @@
 			<ul class="list-group list-group-flush" id="shipmentStatusList"></ul>
 		</div>
 
-		<div class="card shadow-sm mb-4">
+		<div class="card shadow-sm mb-4" id="currentShipmentsCard">
 			<div
 				class="card-header fw-semibold d-flex justify-content-between">
 				<span>Vận đơn hiện tại</span> <span

@@ -39,8 +39,6 @@
 
 		<div class="d-flex justify-content-between align-items-center mb-3">
 			<h4 class="mb-0">Tổng quan</h4>
-			<button id="refreshBtn" type="button"
-				class="btn btn-sm btn-outline-primary">Làm mới</button>
 		</div>
 
 		<!-- Statistics -->
@@ -153,7 +151,7 @@
 						<tr>
 							<th>Mã vận đơn</th>
 							<th>Người nhận</th>
-							<th>Trạng thái</th>
+							<th>Lộ trình</th>
 							<th>Ngày tạo</th>
 							<th></th>
 						</tr>

@@ -16,7 +16,14 @@
 	if (!user) { return; }
 	document.body.hidden = false;
 
-	var state = { shippers: [], managers: [], currentShipments: [], deletable: [] };
+	var state = {
+		shippers: [],
+		managers: [],
+		currentShipments: [],
+		currentShipmentSuggestions: {},
+		hideCurrentShipmentsCard: false,
+		deletable: []
+	};
 
 	var STATUS_LABELS = {
 		READY: "Chờ phân công",
@@ -45,6 +52,28 @@
 		VENDOR: "Đối tác"
 	};
 
+	var DISTRICT_NAMES = {
+		Q1: "Quận 1",
+		Q2: "Quận 2",
+		Q3: "Quận 3",
+		Q4: "Quận 4",
+		Q5: "Quận 5",
+		Q6: "Quận 6",
+		Q7: "Quận 7",
+		Q8: "Quận 8",
+		Q9: "Quận 9",
+		Q10: "Quận 10",
+		Q11: "Quận 11",
+		Q12: "Quận 12",
+		TD: "Thủ Đức",
+		GV: "Gò Vấp",
+		BTH: "Bình Thạnh",
+		PN: "Phú Nhuận",
+		TB: "Tân Bình",
+		TPH: "Tân Phú",
+		BTA: "Bình Tân"
+	};
+
 	// ---------- helpers ----------
 
 	function $(id) { return document.getElementById(id); }
@@ -66,6 +95,14 @@
 			? new Date(value[0], value[1] - 1, value[2], value[3] || 0, value[4] || 0)
 			: new Date(value);
 		return isNaN(date.getTime()) ? "-" : date.toLocaleString("vi-VN");
+	}
+
+	function isHcmProvince(province) {
+		var normalized = String(province || "").toLowerCase()
+			.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d");
+		return normalized.indexOf("ho chi minh") !== -1 ||
+			normalized.indexOf("hcm") !== -1 ||
+			normalized.indexOf("sai gon") !== -1;
 	}
 
 	function api(path, options) {
@@ -275,6 +312,8 @@
 		var body = $("currentShipmentsBody");
 		if (!body) { return; }
 
+		var card = $("currentShipmentsCard");
+		if (card) { card.hidden = state.hideCurrentShipmentsCard; }
 		setText("currentShipmentCount", String(state.currentShipments.length));
 
 		if (!state.currentShipments.length) {
@@ -347,8 +386,15 @@
 			if (!select || select.disabled) { return; }
 
 			try {
-				var list = await api("/api/admin/shipments/" + encodeURIComponent(button.getAttribute("data-assign")) +
-					"/suggested-shippers");
+				var shipmentId = button.getAttribute("data-assign");
+				var list;
+				if (user.role === "MANAGER") {
+					list = state.currentShipmentSuggestions[shipmentId];
+					if (!list) { return; }
+				} else {
+					list = await api("/api/admin/shipments/" + encodeURIComponent(shipmentId) +
+						"/suggested-shippers");
+				}
 				if (!Array.isArray(list) || !list.length) { return; }
 
 				select.innerHTML = suggestionOptions(list);
@@ -362,9 +408,49 @@
 
 	async function loadCurrentShipments() {
 		try {
-			state.currentShipments = (await api("/api/admin/shipments/current")) || [];
+			var shipments = (await api("/api/admin/shipments/current")) || [];
+			state.currentShipmentSuggestions = {};
+			state.hideCurrentShipmentsCard = false;
+
+			if (user.role === "MANAGER") {
+				var assignableShipments = shipments.filter(function (shipment) {
+					return shipment.status === "READY" && !shipment.shipper;
+				});
+				var suggestionErrors = [];
+				await Promise.all(assignableShipments.map(async function (shipment) {
+					try {
+						var suggestions = await api("/api/admin/shipments/" +
+							encodeURIComponent(shipment.id) + "/suggested-shippers");
+						if (!Array.isArray(suggestions)) {
+							throw new Error("Dữ liệu gợi ý shipper không hợp lệ");
+						}
+						state.currentShipmentSuggestions[String(shipment.id)] = suggestions;
+					} catch (error) {
+						suggestionErrors.push(error);
+					}
+				}));
+
+				state.currentShipments = shipments.filter(function (shipment) {
+					if (shipment.status !== "READY" || shipment.shipper) { return true; }
+					if (!isHcmProvince(shipment.pickupProvince)) { return true; }
+					var suggestions = state.currentShipmentSuggestions[String(shipment.id)];
+					return !suggestions || suggestions.some(function (suggestion) {
+						return suggestion.match === "EXACT" || suggestion.match === "UNKNOWN";
+					});
+				});
+				state.hideCurrentShipmentsCard = shipments.length > 0 &&
+					state.currentShipments.length === 0 &&
+					assignableShipments.length === shipments.length;
+				if (suggestionErrors.length) {
+					showAlert("warning", "Không thể kiểm tra khu vực lấy hàng của một số vận đơn. Các vận đơn đó vẫn được hiển thị.");
+				}
+			} else {
+				state.currentShipments = shipments;
+			}
 		} catch (error) {
 			state.currentShipments = [];
+			state.currentShipmentSuggestions = {};
+			state.hideCurrentShipmentsCard = false;
 			showAlert("danger", "Không tải được danh sách vận đơn hiện tại: " + error.message);
 		}
 		renderCurrentShipments();
@@ -407,10 +493,15 @@
 				return;
 			}
 			body.innerHTML = state.deletable.map(function (s) {
+				var route = Array.isArray(s.plannedRouteDistricts)
+					? s.plannedRouteDistricts.map(function (code) {
+						return DISTRICT_NAMES[code] || code;
+					}).join(" → ")
+					: "";
 				return "<tr>" +
 					"<td><strong>" + esc(s.trackingCode) + "</strong></td>" +
 					"<td>" + esc(s.receiverName || "-") + "</td>" +
-					"<td>" + esc(STATUS_LABELS[s.status] || s.status) + "</td>" +
+					"<td>" + esc(route || "Chưa có lộ trình") + "</td>" +
 					"<td>" + esc(fmtDate(s.createdAt)) + "</td>" +
 					'<td class="text-end"><button type="button" class="btn btn-sm btn-outline-danger" data-delete="' +
 					esc(s.id) + '">Xóa vĩnh viễn</button></td></tr>';
