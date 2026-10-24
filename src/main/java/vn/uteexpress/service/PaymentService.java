@@ -24,6 +24,7 @@ import vn.uteexpress.config.PaymentConfig;
 import vn.uteexpress.dto.PaymentRequest;
 import vn.uteexpress.dto.PaymentResponse;
 import vn.uteexpress.entity.Payment;
+import vn.uteexpress.entity.PaymentMethod;
 import vn.uteexpress.entity.Shipment;
 import vn.uteexpress.entity.ShipmentStatus;
 import vn.uteexpress.entity.User;
@@ -63,6 +64,12 @@ public class PaymentService {
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Shipment not found"));
 		requireOwnerOrAdmin(actor, shipment);
 
+		if (shipment.getPaymentMethod() == PaymentMethod.CASH) {
+			throw new IllegalArgumentException("Vận đơn này đã chọn thanh toán tiền mặt");
+		}
+		if ("PAID".equalsIgnoreCase(shipment.getPaymentStatus())) {
+			throw new IllegalArgumentException("Vận đơn này đã được thanh toán");
+		}
 		if (shipment.getStatus() != ShipmentStatus.READY) {
 			throw new IllegalArgumentException("Payment can only be created for a READY shipment");
 		}

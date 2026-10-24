@@ -31,6 +31,27 @@
 
 		<div id="booking-message" class="alert d-none" role="status" aria-live="polite"></div>
 
+		<section class="card shadow-sm mb-4" aria-labelledby="wallet-title">
+			<div class="card-body p-4">
+				<div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+					<div>
+						<h2 id="wallet-title" class="h5 mb-1">Ví ứng dụng</h2>
+						<p class="text-muted mb-2">Số dư: <strong id="wallet-balance">Đang tải...</strong></p>
+					</div>
+					<div class="d-flex flex-wrap align-items-start gap-2">
+						<div>
+							<label class="visually-hidden" for="wallet-top-up-amount">Số tiền nạp (VND)</label>
+							<input id="wallet-top-up-amount" class="form-control" type="number" min="1" max="50000000"
+								step="1" placeholder="Số tiền nạp (VND)" aria-describedby="wallet-top-up-help">
+							<div id="wallet-top-up-help" class="form-text">Tối đa 50.000.000 VND/lần</div>
+						</div>
+						<button id="wallet-top-up-button" class="btn btn-outline-primary" type="button">Nạp tiền</button>
+					</div>
+				</div>
+				<div id="wallet-message" class="small mt-2" role="status" aria-live="polite"></div>
+			</div>
+		</section>
+
 		<form id="booking-form" class="card shadow-sm">
 			<div class="card-body p-4">
 				<section class="mb-4">
@@ -126,6 +147,24 @@
 					</div>
 				</section>
 
+				<section class="mb-4">
+					<h2 class="h5 mb-3">Phương thức thanh toán</h2>
+					<div class="d-flex flex-column gap-2">
+						<div class="form-check border rounded p-3 ps-5">
+							<input class="form-check-input" type="radio" name="paymentMethod" id="payment-cash"
+								value="CASH" checked>
+							<label class="form-check-label fw-semibold" for="payment-cash">Tiền mặt</label>
+							<div class="form-text">Thanh toán phí vận chuyển bằng tiền mặt.</div>
+						</div>
+						<div class="form-check border rounded p-3 ps-5">
+							<input class="form-check-input" type="radio" name="paymentMethod" id="payment-wallet"
+								value="WALLET" disabled>
+							<label class="form-check-label fw-semibold" for="payment-wallet">Ví ứng dụng</label>
+							<div id="wallet-payment-help" class="form-text">Tính phí vận chuyển để kiểm tra số dư ví.</div>
+						</div>
+					</div>
+				</section>
+
 				<div id="quote-result" class="alert alert-info d-none" role="status" aria-live="polite"></div>
 				<div class="d-flex flex-wrap gap-2">
 					<button id="quote-button" class="btn btn-outline-primary" type="button">Tính phí vận chuyển</button>
@@ -175,6 +214,15 @@
 			var quoteResult = document.getElementById("quote-result");
 			var quoteButton = document.getElementById("quote-button");
 			var submitButton = document.getElementById("submit-button");
+			var walletBalanceElement = document.getElementById("wallet-balance");
+			var walletMessage = document.getElementById("wallet-message");
+			var topUpAmount = document.getElementById("wallet-top-up-amount");
+			var topUpButton = document.getElementById("wallet-top-up-button");
+			var walletPayment = document.getElementById("payment-wallet");
+			var walletPaymentHelp = document.getElementById("wallet-payment-help");
+			var walletBalance = 0;
+			var walletLoaded = false;
+			var quotedFee = null;
 			document.body.hidden = false;
 			document.getElementById("customer-name").textContent = user.username;
 
@@ -206,6 +254,84 @@
 				}).format(value);
 			}
 
+			function updateWalletPaymentOption() {
+				var canPayWithWallet = walletLoaded && quotedFee !== null && walletBalance >= quotedFee;
+				walletPayment.disabled = !canPayWithWallet;
+				if (canPayWithWallet) {
+					walletPaymentHelp.textContent = "Số dư đủ để thanh toán phí vận chuyển "
+						+ formatMoney(quotedFee) + " bằng ví.";
+				} else if (quotedFee !== null && walletLoaded) {
+					walletPaymentHelp.textContent = "Số dư không đủ cho phí "
+						+ formatMoney(quotedFee) + ". Vui lòng nạp thêm hoặc chọn tiền mặt.";
+					if (walletPayment.checked) {
+						document.getElementById("payment-cash").checked = true;
+					}
+				} else {
+					walletPaymentHelp.textContent = "Tính phí vận chuyển để kiểm tra số dư ví.";
+				}
+			}
+
+			function loadWallet() {
+				return window.apiData(window.Auth.url("/api/users/me/wallet"))
+					.then(function (wallet) {
+						walletBalance = Number(wallet.balance) || 0;
+						walletLoaded = true;
+						walletBalanceElement.textContent = formatMoney(walletBalance);
+						updateWalletPaymentOption();
+					});
+			}
+
+			topUpButton.addEventListener("click", async function () {
+				var amount = Number(topUpAmount.value);
+				if (!Number.isInteger(amount) || amount <= 0 || amount > 50000000) {
+					walletMessage.className = "small mt-2 text-danger";
+					walletMessage.textContent = "Nhập số tiền nguyên từ 1 đến 50.000.000 VND.";
+					return;
+				}
+
+				topUpButton.disabled = true;
+				walletMessage.className = "small mt-2 text-muted";
+				walletMessage.textContent = "Đang nạp tiền...";
+				try {
+					var wallet = await window.apiData(window.Auth.url("/api/users/me/wallet/top-up"), {
+						method: "POST",
+						body: { amount: amount }
+					});
+					walletBalance = Number(wallet.balance) || 0;
+					walletLoaded = true;
+					walletBalanceElement.textContent = formatMoney(walletBalance);
+					topUpAmount.value = "";
+					walletMessage.className = "small mt-2 text-success";
+					walletMessage.textContent = "Đã cộng tiền vào ví.";
+					updateWalletPaymentOption();
+				} catch (error) {
+					walletMessage.className = "small mt-2 text-danger";
+					walletMessage.textContent = error.message || "Không nạp được tiền vào ví.";
+				} finally {
+					topUpButton.disabled = false;
+				}
+			});
+
+			loadWallet().catch(function (error) {
+				walletBalanceElement.textContent = "Không tải được";
+				walletMessage.className = "small mt-2 text-danger";
+				walletMessage.textContent = error.message || "Không tải được số dư ví.";
+			});
+
+			form.querySelectorAll("input:not([name='paymentMethod']), select").forEach(function (field) {
+				field.addEventListener("input", invalidateQuote);
+				field.addEventListener("change", invalidateQuote);
+			});
+
+			function invalidateQuote() {
+				quotedFee = null;
+				updateWalletPaymentOption();
+				quoteResult.classList.add("d-none");
+				if (walletPayment.checked) {
+					document.getElementById("payment-cash").checked = true;
+				}
+			}
+
 			quoteButton.addEventListener("click", async function () {
 				if (!form.reportValidity()) { return; }
 				quoteButton.disabled = true;
@@ -216,10 +342,14 @@
 						method: "POST",
 						body: readForm()
 					});
+					quotedFee = Number(quote.totalFee);
+					updateWalletPaymentOption();
 					quoteResult.textContent = "Phí dự kiến: " + formatMoney(quote.totalFee)
 						+ " · Thời gian dự kiến: " + quote.minDays + "–" + quote.maxDays + " ngày";
 					quoteResult.classList.remove("d-none");
 				} catch (error) {
+					quotedFee = null;
+					updateWalletPaymentOption();
 					showMessage(error.message || "Không tính được phí vận chuyển.", "danger");
 				} finally {
 					quoteButton.disabled = false;

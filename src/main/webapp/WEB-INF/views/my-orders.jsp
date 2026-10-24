@@ -351,9 +351,13 @@
 				if (info && info.refunded) {
 					badge.classList.add("text-bg-info");
 					badge.textContent = "Đã hoàn tiền";
-				} else if (info && info.paid) {
+				} else if (shipment.paymentStatus === "PAID" || (info && info.paid)) {
 					badge.classList.add("text-bg-success");
-					badge.textContent = "Đã thanh toán";
+					badge.textContent = shipment.paymentMethod === "WALLET"
+						? "Đã trả bằng ví" : "Đã thanh toán";
+				} else if (shipment.paymentMethod === "CASH") {
+					badge.classList.add("text-bg-info");
+					badge.textContent = "Tiền mặt";
 				} else if (shipment.status === "READY") {
 					badge.classList.add("text-bg-warning");
 					badge.textContent = info && info.pending ? "Chờ thanh toán" : "Chưa thanh toán";
@@ -432,6 +436,8 @@
 				actionCell.appendChild(trackButton);
 				var needsPayment = shipment.status === "READY"
 					&& !(info && info.paid)
+					&& shipment.paymentStatus !== "PAID"
+					&& shipment.paymentMethod !== "CASH"
 					&& Number(shipment.shippingFee) > 0;
 				if (needsPayment) {
 					var button = document.createElement("button");

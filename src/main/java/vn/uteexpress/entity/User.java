@@ -3,6 +3,8 @@ package vn.uteexpress.entity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.math.BigDecimal;
+
 import jakarta.persistence.*;
 
 @Entity
@@ -33,6 +35,10 @@ public class User {
 
 	@Column(name = "avatar_url", length = 500)
 	private String avatarUrl;
+
+	@JsonIgnore
+	@Column(name = "wallet_balance", precision = 15, scale = 2)
+	private BigDecimal walletBalance = BigDecimal.ZERO;
 
 	@Column(nullable = false)
 	private boolean enabled = false;
@@ -113,6 +119,14 @@ public class User {
 
 	public void setAvatarUrl(String avatarUrl) {
 		this.avatarUrl = avatarUrl;
+	}
+
+	public BigDecimal getWalletBalance() {
+		return walletBalance == null ? BigDecimal.ZERO : walletBalance;
+	}
+
+	public void setWalletBalance(BigDecimal walletBalance) {
+		this.walletBalance = walletBalance;
 	}
 
 	public boolean isEnabled() {

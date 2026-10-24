@@ -14,8 +14,17 @@
 		var button = document.createElement("button");
 		button.type = "button";
 		button.className = "profile-avatar-button";
-		button.setAttribute("aria-label", "Cập nhật ảnh đại diện");
-		button.title = "Cập nhật ảnh đại diện";
+		button.setAttribute("aria-label", "Xem ảnh đại diện và tùy chọn");
+		button.title = "Xem ảnh đại diện";
+
+		var buttonImage = document.createElement("img");
+		buttonImage.className = "profile-avatar-button-image";
+		buttonImage.alt = "";
+		buttonImage.hidden = true;
+		var buttonInitials = document.createElement("span");
+		buttonInitials.className = "profile-avatar-button-initials";
+		buttonInitials.textContent = String(user.username || "?").trim().charAt(0).toUpperCase() || "?";
+		button.append(buttonImage, buttonInitials);
 
 		var dialog = document.createElement("dialog");
 		dialog.className = "profile-avatar-dialog";
@@ -41,7 +50,7 @@
 
 		var image = document.createElement("img");
 		image.className = "profile-avatar-preview-image";
-		image.alt = "";
+		image.alt = "Ảnh đại diện";
 		image.hidden = true;
 
 		var initials = document.createElement("span");
@@ -60,7 +69,7 @@
 		var chooseButton = document.createElement("button");
 		chooseButton.type = "button";
 		chooseButton.className = "btn btn-primary";
-		chooseButton.textContent = "Chọn ảnh";
+		chooseButton.textContent = "Thay đổi ảnh";
 
 		var dialogActions = document.createElement("div");
 		dialogActions.className = "d-flex justify-content-center gap-2 mt-3";
@@ -83,11 +92,22 @@
 		function showAvatar(avatarUrl) {
 			removeButton.hidden = !avatarUrl;
 			if (!avatarUrl) {
+				buttonImage.hidden = true;
+				buttonInitials.hidden = false;
+				buttonImage.removeAttribute("src");
 				image.hidden = true;
 				initials.hidden = false;
 				image.removeAttribute("src");
 				return;
 			}
+			buttonImage.onload = function () {
+				buttonImage.hidden = false;
+				buttonInitials.hidden = true;
+			};
+			buttonImage.onerror = function () {
+				buttonImage.hidden = true;
+				buttonInitials.hidden = false;
+			};
 			image.onload = function () {
 				image.hidden = false;
 				initials.hidden = true;
@@ -96,7 +116,9 @@
 				image.hidden = true;
 				initials.hidden = false;
 			};
-			image.src = contextPath + avatarUrl;
+			var imageUrl = contextPath + avatarUrl;
+			buttonImage.src = imageUrl;
+			image.src = imageUrl;
 		}
 
 		button.addEventListener("click", function () {

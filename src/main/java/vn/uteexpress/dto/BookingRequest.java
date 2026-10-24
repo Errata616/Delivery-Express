@@ -10,6 +10,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
+import vn.uteexpress.entity.PaymentMethod;
 import vn.uteexpress.entity.ServiceType;
 
 public class BookingRequest {
@@ -94,6 +95,8 @@ public class BookingRequest {
     @DecimalMin(value = "0", message = "Tiền thu hộ không được âm")
     @Digits(integer = 12, fraction = 2)
     private BigDecimal codAmount = BigDecimal.ZERO;
+
+    private PaymentMethod paymentMethod = PaymentMethod.CASH;
 
     @Size(max = 500)
     private String note;
@@ -229,6 +232,14 @@ public class BookingRequest {
 
     public void setCodAmount(BigDecimal codAmount) {
         this.codAmount = codAmount;
+    }
+
+    public PaymentMethod getPaymentMethod() {
+        return paymentMethod;
+    }
+
+    public void setPaymentMethod(PaymentMethod paymentMethod) {
+        this.paymentMethod = paymentMethod;
     }
 
     public String getNote() {

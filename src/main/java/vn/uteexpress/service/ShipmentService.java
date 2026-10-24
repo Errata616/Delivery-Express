@@ -30,6 +30,7 @@ import vn.uteexpress.entity.NotificationType;
 import vn.uteexpress.entity.Order;
 import vn.uteexpress.entity.OrderStatus;
 import vn.uteexpress.entity.Payment;
+import vn.uteexpress.entity.PaymentMethod;
 import vn.uteexpress.entity.Shipment;
 import vn.uteexpress.entity.ShipmentEvent;
 import vn.uteexpress.entity.ShipmentStatus;
@@ -99,10 +100,18 @@ public class ShipmentService {
 			throw new IllegalArgumentException("Thông tin đơn gửi hàng không được null");
 		}
 
-		User customer = userRepository.findById(customerId)
+		PaymentMethod paymentMethod = request.getPaymentMethod() == null
+				? PaymentMethod.CASH : request.getPaymentMethod();
+		User customer = (paymentMethod == PaymentMethod.WALLET
+				? userRepository.findByIdForUpdate(customerId)
+				: userRepository.findById(customerId))
 				.orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
 
 		ShippingFeeService.FeeQuote fee = shippingFeeService.calculate(request);
+		if (paymentMethod == PaymentMethod.WALLET
+				&& customer.getWalletBalance().compareTo(fee.totalFee()) < 0) {
+			throw new IllegalArgumentException("Số dư ví không đủ thanh toán. Vui lòng nạp thêm hoặc chọn tiền mặt.");
+		}
 
 		Shipment shipment = new Shipment();
 		shipment.setTrackingCode(generateTrackingCode());
@@ -131,10 +140,16 @@ public class ShipmentService {
 		shipment.setCodAmount(request.getCodAmount() == null ? BigDecimal.ZERO : request.getCodAmount());
 		shipment.setServiceType(fee.serviceType());
 		shipment.setShippingFee(fee.totalFee());
+		shipment.setPaymentMethod(paymentMethod);
+		shipment.setPaymentStatus(paymentMethod == PaymentMethod.WALLET ? "PAID" : "UNPAID");
 
 		shipment.setOriginHub(findHubByProvince(request.getPickupProvince()));
 		shipment.setDestinationHub(findHubByProvince(request.getDeliveryProvince()));
 
+		if (paymentMethod == PaymentMethod.WALLET) {
+			customer.setWalletBalance(customer.getWalletBalance().subtract(fee.totalFee()));
+			userRepository.save(customer);
+		}
 		Shipment saved = shipmentRepository.save(shipment);
 
 		recordEvent(saved, ShipmentStatus.READY, null, defaultNote(ShipmentStatus.READY), customer);

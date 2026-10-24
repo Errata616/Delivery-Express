@@ -107,6 +107,13 @@ public class Shipment {
 	@Column(precision = 15, scale = 2)
 	private BigDecimal shippingFee = BigDecimal.ZERO;
 
+	@Enumerated(EnumType.STRING)
+	@Column(name = "payment_method", length = 20)
+	private PaymentMethod paymentMethod;
+
+	@Column(name = "payment_status", length = 20)
+	private String paymentStatus;
+
 	// ---- timestamps ----
 
 	@Column(nullable = false)
@@ -348,6 +355,22 @@ public class Shipment {
 
 	public void setShippingFee(BigDecimal shippingFee) {
 		this.shippingFee = shippingFee;
+	}
+
+	public PaymentMethod getPaymentMethod() {
+		return paymentMethod;
+	}
+
+	public void setPaymentMethod(PaymentMethod paymentMethod) {
+		this.paymentMethod = paymentMethod;
+	}
+
+	public String getPaymentStatus() {
+		return paymentStatus;
+	}
+
+	public void setPaymentStatus(String paymentStatus) {
+		this.paymentStatus = paymentStatus;
 	}
 
 	public LocalDateTime getCreatedAt() {
