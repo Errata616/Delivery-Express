@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.access.AccessDeniedException;
 
 import vn.uteexpress.entity.Payment;
+import vn.uteexpress.entity.PaymentMethod;
 import vn.uteexpress.entity.Role;
 import vn.uteexpress.entity.Shipment;
 import vn.uteexpress.entity.ShipmentStatus;
@@ -53,6 +54,63 @@ class ShipmentPaymentAssignmentTest {
 
 		assertThrows(IllegalArgumentException.class, () -> service.assignShipper(5L, 9L));
 		verify(shipmentRepository, never()).save(shipment);
+	}
+
+	@Test
+	void assignsWalletPaidShipmentWithoutSeparatePaymentRecord() {
+		ShipmentRepository shipmentRepository = mock(ShipmentRepository.class);
+		PaymentRepository paymentRepository = mock(PaymentRepository.class);
+		UserRepository userRepository = mock(UserRepository.class);
+		Shipment shipment = new Shipment();
+		shipment.setPaymentStatus("PAID");
+		User shipper = new User("shipper", "shipper@example.com", "hash", "Shipper", null, true,
+				new Role("SHIPPER"));
+
+		when(shipmentRepository.findById(5L)).thenReturn(Optional.of(shipment));
+		when(shipmentRepository.save(shipment)).thenReturn(shipment);
+		when(userRepository.findById(9L)).thenReturn(Optional.of(shipper));
+
+		ShipmentService service = new ShipmentService(shipmentRepository, mock(OrderRepository.class),
+				paymentRepository, mock(HiddenShipmentRepository.class), userRepository,
+				mock(ShipmentEventRepository.class), mock(ReviewRepository.class), mock(HubRepository.class),
+				mock(ShippingFeeService.class), mock(NotificationService.class), mock(ShipperZoneRepository.class),
+				mock(RouteService.class));
+
+		Shipment assigned = service.assignShipper(5L, 9L);
+
+		assertEquals(ShipmentStatus.ASSIGNED, assigned.getStatus());
+		assertEquals(shipper, assigned.getShipper());
+		verify(paymentRepository, never()).existsByShipmentIdAndStatus(5L, "PAID");
+		verify(shipmentRepository).save(shipment);
+	}
+
+	@Test
+	void assignsCashPaymentShipmentBeforePaymentIsCollected() {
+		ShipmentRepository shipmentRepository = mock(ShipmentRepository.class);
+		PaymentRepository paymentRepository = mock(PaymentRepository.class);
+		UserRepository userRepository = mock(UserRepository.class);
+		Shipment shipment = new Shipment();
+		shipment.setPaymentMethod(PaymentMethod.CASH);
+		shipment.setPaymentStatus("UNPAID");
+		User shipper = new User("shipper", "shipper@example.com", "hash", "Shipper", null, true,
+				new Role("SHIPPER"));
+
+		when(shipmentRepository.findById(5L)).thenReturn(Optional.of(shipment));
+		when(shipmentRepository.save(shipment)).thenReturn(shipment);
+		when(userRepository.findById(9L)).thenReturn(Optional.of(shipper));
+
+		ShipmentService service = new ShipmentService(shipmentRepository, mock(OrderRepository.class),
+				paymentRepository, mock(HiddenShipmentRepository.class), userRepository,
+				mock(ShipmentEventRepository.class), mock(ReviewRepository.class), mock(HubRepository.class),
+				mock(ShippingFeeService.class), mock(NotificationService.class), mock(ShipperZoneRepository.class),
+				mock(RouteService.class));
+
+		Shipment assigned = service.assignShipper(5L, 9L);
+
+		assertEquals(ShipmentStatus.ASSIGNED, assigned.getStatus());
+		assertEquals(shipper, assigned.getShipper());
+		verify(paymentRepository, never()).existsByShipmentIdAndStatus(5L, "PAID");
+		verify(shipmentRepository).save(shipment);
 	}
 
 	@Test

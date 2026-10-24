@@ -64,9 +64,10 @@
 					class="d-none align-items-center gap-2 mt-2 mt-lg-0">
 					<span id="navName" class="text-white small"></span>
 					<div data-profile-actions class="d-flex align-items-center gap-2"></div>
-					<a
-						id="navDashboard" class="btn btn-sm btn-light" href="#">Bảng
-						điều khiển</a>
+					<a class="btn btn-sm btn-outline-light"
+						href="${pageContext.request.contextPath}/booking">Tạo đơn</a>
+					<a class="btn btn-sm btn-outline-light"
+						href="${pageContext.request.contextPath}/my-orders">Đơn hàng của tôi</a>
 					<button id="navLogout" type="button"
 						class="btn btn-sm btn-outline-light">Đăng xuất</button>
 				</div>
@@ -92,8 +93,7 @@
 
 					<div id="heroGuest" class="d-flex flex-wrap gap-2">
 						<a class="btn btn-accent btn-lg px-4"
-							href="${pageContext.request.contextPath}/register">Bắt đầu
-							miễn phí</a> <a class="btn btn-outline-light btn-lg px-4"
+							href="${pageContext.request.contextPath}/register">Đăng Nhập</a> <a class="btn btn-outline-light btn-lg px-4"
 							href="#tra-cuu">Tra cứu vận đơn</a>
 					</div>
 					<div id="heroUser" class="d-none flex-wrap gap-2">
@@ -495,6 +495,30 @@
 					status.className = "mb-0";
 					status.textContent = "Trạng thái: " + (tracking.statusText || tracking.status || "Không rõ");
 					box.appendChild(status);
+
+					var details = document.createElement("div");
+					details.className = "row g-3 mt-1 pt-3 border-top";
+
+					function appendDetail(label, value) {
+						var column = document.createElement("div");
+						column.className = "col-md-6";
+						var caption = document.createElement("div");
+						caption.className = "small text-muted mb-1";
+						caption.textContent = label;
+						var text = document.createElement("div");
+						text.className = "fw-semibold";
+						text.textContent = value || "Chưa cập nhật";
+						column.appendChild(caption);
+						column.appendChild(text);
+						details.appendChild(column);
+					}
+
+					appendDetail("Người gửi", [tracking.senderName, tracking.senderPhone].filter(Boolean).join(" · "));
+					appendDetail("Người nhận", [tracking.receiverName, tracking.receiverPhone].filter(Boolean).join(" · "));
+					appendDetail("Nơi gửi", [tracking.pickupDistrict, tracking.pickupProvince].filter(Boolean).join(", "));
+					appendDetail("Nơi nhận", [tracking.deliveryDistrict, tracking.deliveryProvince].filter(Boolean).join(", "));
+					appendDetail("Mặt hàng", tracking.itemDescription);
+					box.appendChild(details);
 					result.appendChild(box);
 					await loadRoute(tracking, box);
 				} catch (error) {

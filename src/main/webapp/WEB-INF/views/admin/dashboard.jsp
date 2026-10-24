@@ -132,7 +132,7 @@
 							<th>COD</th>
 							<th>Ngày tạo</th>
 							<th>Trạng thái</th>
-							<th style="min-width: 260px">Phân công</th>
+							<th style="min-width: 260px">Phân công / Thao tác</th>
 						</tr>
 					</thead>
 					<tbody id="currentShipmentsBody">

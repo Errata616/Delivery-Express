@@ -16,6 +16,7 @@
 		<div class="container">
 			<a class="navbar-brand fw-bold" href="${pageContext.request.contextPath}/">UTEExpress</a>
 			<div class="d-flex align-items-center gap-3">
+				<a class="btn btn-outline-light btn-sm" href="${pageContext.request.contextPath}/about-us">Về chúng tôi</a>
 				<a class="btn btn-outline-light btn-sm" href="${pageContext.request.contextPath}/booking">
 					<i class="bi bi-plus-circle me-1" aria-hidden="true"></i>Tạo đơn mới
 				</a>

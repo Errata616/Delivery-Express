@@ -8,7 +8,7 @@ import java.util.List;
 /**
  * Public tracking result. Returned by an endpoint that needs no login, so it
  * only holds data that is safe to show to anyone who has the tracking code:
- * no user ids, no emails, no street addresses, and masked receiver details.
+ * no user ids, no emails, no street addresses, and masked sender/receiver details.
  */
 public class TrackingResponse {
 
@@ -22,6 +22,8 @@ public class TrackingResponse {
 	private String statusText;
 
 	// Masked for privacy, see maskName / maskPhone below
+	private String senderName;
+	private String senderPhone;
 	private String receiverName;
 	private String receiverPhone;
 
@@ -32,6 +34,7 @@ public class TrackingResponse {
 
 	private BigDecimal weightKg;
 	private BigDecimal codAmount;
+	private String itemDescription;
 
 	// Shown once a shipper is assigned. Name only, no phone number.
 	private String shipperName;
@@ -187,6 +190,22 @@ public class TrackingResponse {
 		return receiverName;
 	}
 
+	public String getSenderName() {
+		return senderName;
+	}
+
+	public void setSenderName(String senderName) {
+		this.senderName = senderName;
+	}
+
+	public String getSenderPhone() {
+		return senderPhone;
+	}
+
+	public void setSenderPhone(String senderPhone) {
+		this.senderPhone = senderPhone;
+	}
+
 	public void setReceiverName(String receiverName) {
 		this.receiverName = receiverName;
 	}
@@ -237,6 +256,14 @@ public class TrackingResponse {
 
 	public void setCodAmount(BigDecimal codAmount) {
 		this.codAmount = codAmount;
+	}
+
+	public String getItemDescription() {
+		return itemDescription;
+	}
+
+	public void setItemDescription(String itemDescription) {
+		this.itemDescription = itemDescription;
 	}
 
 	public String getShipperName() {

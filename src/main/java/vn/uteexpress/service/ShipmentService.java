@@ -216,7 +216,8 @@ public class ShipmentService {
 			throw new IllegalArgumentException("Shipment đã được gán Shipper");
 		}
 
-		if (shipment.getOrder() == null
+		if (shipment.getOrder() == null && shipment.getPaymentMethod() != PaymentMethod.CASH
+				&& !"PAID".equalsIgnoreCase(shipment.getPaymentStatus())
 				&& !paymentRepository.existsByShipmentIdAndStatus(shipmentId, "PAID")) {
 			throw new IllegalArgumentException("Vui lòng thanh toán phí vận chuyển trước khi phân công");
 		}
@@ -362,7 +363,9 @@ public class ShipmentService {
 		}
 
 		boolean paymentRefunded = false;
-		if (newStatus == ShipmentStatus.FAILED) {
+		if (newStatus == ShipmentStatus.CANCELLED) {
+			paymentRefunded = refundShipmentPayment(shipment, now);
+		} else if (newStatus == ShipmentStatus.FAILED) {
 			Payment payment = paymentRepository
 					.findFirstByShipmentIdAndStatusOrderByCreatedAtDesc(shipmentId, "PAID").orElse(null);
 			if (payment != null) {
@@ -411,6 +414,41 @@ public class ShipmentService {
 		notifyCustomer(saved, eventNote); // NEW
 
 		return saved;
+	}
+
+	private boolean refundShipmentPayment(Shipment shipment, LocalDateTime refundedAt) {
+		boolean refunded = false;
+		Payment payment = paymentRepository
+				.findFirstByShipmentIdAndStatusOrderByCreatedAtDesc(shipment.getId(), "PAID").orElse(null);
+		if (payment != null) {
+			payment.setStatus("REFUNDED");
+			payment.setUpdatedAt(refundedAt);
+			paymentRepository.save(payment);
+			refunded = true;
+		}
+
+		if ("PAID".equalsIgnoreCase(shipment.getPaymentStatus())) {
+			if (shipment.getPaymentMethod() == PaymentMethod.WALLET) {
+				User customer = shipment.getCustomer();
+				if (customer == null && shipment.getOrder() != null) {
+					customer = shipment.getOrder().getUser();
+				}
+				if (customer == null || customer.getId() == null) {
+					throw new IllegalStateException("Không tìm thấy khách hàng để hoàn phí vào ví");
+				}
+				if (shipment.getShippingFee() == null) {
+					throw new IllegalStateException("Không tìm thấy phí vận chuyển để hoàn vào ví");
+				}
+
+				User lockedCustomer = userRepository.findByIdForUpdate(customer.getId())
+						.orElseThrow(() -> new IllegalStateException("Không tìm thấy khách hàng để hoàn phí vào ví"));
+				lockedCustomer.setWalletBalance(lockedCustomer.getWalletBalance().add(shipment.getShippingFee()));
+				userRepository.save(lockedCustomer);
+			}
+			shipment.setPaymentStatus("REFUNDED");
+			refunded = true;
+		}
+		return refunded;
 	}
 
 	@Transactional
@@ -535,8 +573,9 @@ public class ShipmentService {
 		payments = new ArrayList<>(new LinkedHashSet<>(payments));
 		boolean refunded = payments.stream()
 				.anyMatch(payment -> "REFUNDED".equalsIgnoreCase(payment.getStatus()));
-		if (shipment.getStatus() != ShipmentStatus.DELIVERED && !refunded) {
-			throw new IllegalStateException("Chỉ có thể xóa vận đơn đã giao hoặc đã được hoàn tiền");
+		if (shipment.getStatus() != ShipmentStatus.DELIVERED
+				&& shipment.getStatus() != ShipmentStatus.CANCELLED && !refunded) {
+			throw new IllegalStateException("Chỉ có thể xóa vận đơn đã giao, đã hủy hoặc đã được hoàn tiền");
 		}
 
 		reviewRepository.findByShipmentId(shipmentId).ifPresent(reviewRepository::delete);
@@ -599,6 +638,8 @@ public class ShipmentService {
 		response.setStatus(shipment.getStatus().name());
 		response.setStatusText(statusText(shipment.getStatus()));
 
+		response.setSenderName(TrackingResponse.maskName(shipment.getSenderName()));
+		response.setSenderPhone(TrackingResponse.maskPhone(shipment.getSenderPhone()));
 		response.setReceiverName(TrackingResponse.maskName(receiverName));
 		response.setReceiverPhone(TrackingResponse.maskPhone(receiverPhone));
 
@@ -609,6 +650,7 @@ public class ShipmentService {
 
 		response.setWeightKg(shipment.getWeightKg());
 		response.setCodAmount(shipment.getCodAmount());
+		response.setItemDescription(shipment.getItemDescription());
 
 		if (shipment.getShipper() != null && shipment.getShipper().getFullName() != null
 				&& !shipment.getShipper().getFullName().isBlank()) {
@@ -697,7 +739,7 @@ public class ShipmentService {
 	}
 
 	private boolean isDeletable(Shipment shipment, RefundedPayments refunded) {
-		return shipment.getStatus() == ShipmentStatus.DELIVERED
+		return shipment.getStatus() == ShipmentStatus.DELIVERED || shipment.getStatus() == ShipmentStatus.CANCELLED
 				|| refunded.shipmentIds().contains(shipment.getId())
 				|| (shipment.getOrder() != null && refunded.orderIds().contains(shipment.getOrder().getId()));
 	}

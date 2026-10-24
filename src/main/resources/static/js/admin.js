@@ -328,12 +328,20 @@
 				? '<button type="button" class="btn btn-sm btn-outline-secondary ms-2" data-hide="' +
 				esc(s.id) + '">Ẩn</button>'
 				: "";
+			var canCancel = user.role === "ADMIN" &&
+				["READY", "ASSIGNED", "PICKED_UP", "DELIVERING"].indexOf(s.status) !== -1;
+			var cancelAction = canCancel
+				? '<button type="button" class="btn btn-sm btn-outline-danger" data-cancel="' +
+					esc(s.id) + '">Hủy đơn</button>'
+				: "";
 			var assignment = canAssign
 				? '<div class="input-group input-group-sm"><select class="form-select shipper-select" disabled>' +
 					'<option value="">Đang tải shipper phù hợp...</option></select>' +
 					'<button type="button" class="btn btn-primary" data-assign="' + esc(s.id) +
-					'" disabled>Phân công</button></div>' + viewAction
+					'" disabled>Phân công</button></div>'
 				: esc(s.shipper ? (s.shipper.fullName || s.shipper.username) : "-");
+			var actions = '<div class="d-flex flex-column align-items-start gap-1">' +
+				assignment + viewAction + cancelAction + "</div>";
 			return "<tr>" +
 				"<td><strong>" + esc(s.trackingCode) + "</strong></td>" +
 				"<td>" + esc(s.receiverName || "-") + "<br><small class=\"text-muted\">" + esc(s.receiverPhone || "") + "</small></td>" +
@@ -343,7 +351,7 @@
 				"<td>" + money(s.codAmount) + "</td>" +
 				"<td>" + esc(fmtDate(s.createdAt)) + "</td>" +
 				"<td>" + esc(STATUS_LABELS[s.status] || s.status || "-") + "</td>" +
-				'<td class="text-nowrap">' + assignment + "</td></tr>";
+				'<td class="text-nowrap">' + actions + "</td></tr>";
 		}).join("");
 		applySuggestions();
 	}
@@ -473,6 +481,20 @@
 		}
 	}
 
+	async function cancelShipment(shipmentId, button) {
+		if (!window.confirm("Bạn có chắc muốn hủy vận đơn này?")) { return; }
+		button.disabled = true;
+		try {
+			await api("/api/shipments/" + encodeURIComponent(shipmentId) +
+				"/status?status=CANCELLED", { method: "PUT" });
+			showAlert("success", "Đã hủy vận đơn.");
+			await Promise.all([loadCurrentShipments(), loadStats(), loadDeletableShipments()]);
+		} catch (error) {
+			showAlert("danger", "Không thể hủy vận đơn: " + error.message);
+			button.disabled = false;
+		}
+	}
+
 	async function hideShipment(shipmentId, button) {
 		button.disabled = true;
 		try {
@@ -591,6 +613,11 @@
 				if (window.confirm("Ẩn vận đơn này khỏi danh sách của bạn?")) {
 					hideShipment(hideButton.getAttribute("data-hide"), hideButton);
 				}
+				return;
+			}
+			var cancelButton = event.target.closest("button[data-cancel]");
+			if (cancelButton) {
+				cancelShipment(cancelButton.getAttribute("data-cancel"), cancelButton);
 				return;
 			}
 			var button = event.target.closest("button[data-assign]");
