@@ -25,6 +25,7 @@
 				quản trị</span>
 			<div class="d-flex align-items-center gap-3">
 				<span id="whoami" class="text-white small"></span>
+				<div data-profile-actions class="d-flex align-items-center gap-2"></div>
 				<%-- Notification bell --%>
 				<div id="notif-bell-container"></div>
 				<button id="logoutBtn" type="button"
@@ -325,6 +326,7 @@
 		src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 	<script src="${pageContext.request.contextPath}/js/auth.js"></script>
 	<script src="${pageContext.request.contextPath}/js/api.js"></script>
+	<script src="${pageContext.request.contextPath}/js/profile.js"></script>
 	<%-- WebSocket notification bell --%>
 	<script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>

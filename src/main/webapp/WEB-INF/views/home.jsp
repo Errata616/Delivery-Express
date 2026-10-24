@@ -62,7 +62,9 @@
 
 				<div id="navUser"
 					class="d-none align-items-center gap-2 mt-2 mt-lg-0">
-					<span id="navName" class="text-white small"></span> <a
+					<span id="navName" class="text-white small"></span>
+					<div data-profile-actions class="d-flex align-items-center gap-2"></div>
+					<a
 						id="navDashboard" class="btn btn-sm btn-light" href="#">Bảng
 						điều khiển</a>
 					<button id="navLogout" type="button"
@@ -415,7 +417,12 @@
 		</div>
 	</footer>
 
+	<script>
+		window.APP_CONTEXT_PATH = "${pageContext.request.contextPath}";
+	</script>
+	<script src="${pageContext.request.contextPath}/js/auth.js"></script>
 	<script src="${pageContext.request.contextPath}/js/api.js"></script>
+	<script src="${pageContext.request.contextPath}/js/profile.js"></script>
 	<script
 		src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 	<script>

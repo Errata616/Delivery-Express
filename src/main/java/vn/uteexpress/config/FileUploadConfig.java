@@ -13,10 +13,12 @@ public class FileUploadConfig implements WebMvcConfigurer {
 	@Override
 	public void addResourceHandlers(ResourceHandlerRegistry registry) {
 
-		Path uploadPath = Paths.get("uploads", "comments").toAbsolutePath();
+		Path commentUploadPath = Paths.get("uploads", "comments").toAbsolutePath();
+		Path avatarUploadPath = Paths.get("uploads", "avatars").toAbsolutePath();
 
 		registry.addResourceHandler("/uploads/comments/**")
-
-				.addResourceLocations("file:" + uploadPath + "/");
+				.addResourceLocations("file:" + commentUploadPath + "/");
+		registry.addResourceHandler("/uploads/avatars/**")
+				.addResourceLocations("file:" + avatarUploadPath + "/");
 	}
 }

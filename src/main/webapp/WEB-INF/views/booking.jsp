@@ -17,6 +17,7 @@
 			<div class="d-flex align-items-center gap-3">
 				<a class="btn btn-outline-light btn-sm" href="${pageContext.request.contextPath}/my-orders">Đơn hàng của tôi</a>
 				<span id="customer-name" class="text-white"></span>
+				<div data-profile-actions class="d-flex align-items-center gap-2"></div>
 				<button id="logout-button" class="btn btn-outline-light btn-sm" type="button">Đăng xuất</button>
 			</div>
 		</div>
@@ -161,6 +162,7 @@
 	</script>
 	<script src="${pageContext.request.contextPath}/js/auth.js"></script>
 	<script src="${pageContext.request.contextPath}/js/api.js"></script>
+	<script src="${pageContext.request.contextPath}/js/profile.js"></script>
 	<script>
 		(function () {
 			"use strict";

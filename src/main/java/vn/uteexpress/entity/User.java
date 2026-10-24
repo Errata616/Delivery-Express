@@ -31,6 +31,9 @@ public class User {
 	@Column(length = 20)
 	private String phone;
 
+	@Column(name = "avatar_url", length = 500)
+	private String avatarUrl;
+
 	@Column(nullable = false)
 	private boolean enabled = false;
 
@@ -102,6 +105,14 @@ public class User {
 
 	public void setPhone(String phone) {
 		this.phone = phone;
+	}
+
+	public String getAvatarUrl() {
+		return avatarUrl;
+	}
+
+	public void setAvatarUrl(String avatarUrl) {
+		this.avatarUrl = avatarUrl;
 	}
 
 	public boolean isEnabled() {

@@ -146,7 +146,7 @@ class ShipmentRoutingHandoffTest {
 	}
 
 	@Test
-	void replansWhenAPlannedDistrictLosesItsAvailableShipper() {
+	void keepsThePlannedRouteWhenAShipperBecomesUnavailableMidJourney() {
 		ShipmentRepository shipments = mock(ShipmentRepository.class);
 		PaymentRepository payments = mock(PaymentRepository.class);
 		UserRepository users = mock(UserRepository.class);
@@ -180,9 +180,10 @@ class ShipmentRoutingHandoffTest {
 		service.updateStatus(10L, ShipmentStatus.PICKED_UP);
 		service.updateShipmentDistrict(1L, 10L, "Q2");
 
-		assertEquals(List.of("BTH", "Q1", "Q4", "Q7"), shipment.getPlannedRouteDistricts());
-		assertEquals(0, shipment.getCurrentRouteIndex());
-		assertEquals("BTH", shipment.getCurrentDistrict());
+		assertEquals(List.of("BTH", "Q2", "Q7"), shipment.getPlannedRouteDistricts());
+		assertEquals(1, shipment.getCurrentRouteIndex());
+		assertEquals("Q2", shipment.getCurrentDistrict());
+		assertEquals(shipperA, shipment.getShipper());
 	}
 
 	private User shipper(Long id, String name) {

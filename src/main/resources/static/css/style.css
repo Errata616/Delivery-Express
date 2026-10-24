@@ -26,6 +26,85 @@ section[id] {
 	background: linear-gradient(110deg, var(--brand-dark), var(--brand)) !important;
 }
 
+.profile-avatar-button {
+	display: inline-flex;
+	position: relative;
+	align-items: center;
+	justify-content: center;
+	width: 38px;
+	height: 38px;
+	padding: 0;
+	overflow: hidden;
+	border: 2px solid rgba(255, 255, 255, .8);
+	border-radius: 50%;
+	background: rgba(255, 255, 255, .18);
+	color: #fff;
+	cursor: pointer;
+}
+
+.profile-avatar-button:disabled {
+	cursor: wait;
+	opacity: .65;
+}
+
+.profile-avatar-dialog {
+	width: min(360px, calc(100vw - 2rem));
+	max-width: none;
+	padding: 0;
+	overflow: visible;
+	border: 0;
+	border-radius: 1rem;
+	background: #fff;
+	color: var(--ink);
+	box-shadow: 0 1rem 3rem rgba(0, 0, 0, .25);
+}
+
+.profile-avatar-dialog::backdrop {
+	background: rgba(8, 20, 40, .6);
+	backdrop-filter: blur(2px);
+}
+
+.profile-avatar-dialog-content {
+	padding: 1.25rem;
+}
+
+.profile-avatar-preview {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: min(280px, 100%);
+	aspect-ratio: 1;
+	margin: 0 auto;
+	overflow: hidden;
+	border-radius: .75rem;
+	background: #eef2f7;
+}
+
+.profile-avatar-preview-image {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+}
+
+.profile-avatar-preview-initials {
+	color: #64748b;
+	font-size: 5rem;
+	font-weight: 700;
+}
+
+.profile-avatar-status {
+	max-width: 230px;
+	color: #fff;
+}
+
+.profile-avatar-dialog .profile-avatar-status {
+	display: block;
+	max-width: none;
+	margin-top: .75rem;
+	color: #495057;
+	text-align: center;
+}
+
 .card {
 	border-color: rgba(20, 33, 61, .08);
 	border-radius: .85rem;
@@ -464,4 +543,3 @@ footer.site-footer a:hover {
 	border-radius: .8rem;
 	animation: notif-slide-in .25s ease both;
 }
-

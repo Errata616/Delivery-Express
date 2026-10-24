@@ -321,13 +321,6 @@
 			return;
 		}
 
-		var shippers = activeShippers();
-		var options = shippers.length
-			? '<option value="">-- Chọn shipper --</option>' + shippers.map(function (s) {
-				return '<option value="' + esc(s.id) + '">' + esc(s.fullName || s.username) + "</option>";
-			}).join("")
-			: '<option value="">Chưa có shipper</option>';
-
 		body.innerHTML = state.currentShipments.map(function (s) {
 			var area = [s.deliveryDistrict, s.deliveryProvince].filter(Boolean).join(", ") || "-";
 			var canAssign = s.status === "READY" && !s.shipper;
@@ -336,10 +329,10 @@
 				esc(s.id) + '">Ẩn</button>'
 				: "";
 			var assignment = canAssign
-				? '<div class="input-group input-group-sm"><select class="form-select shipper-select"' +
-					(shippers.length ? "" : " disabled") + ">" + options + "</select>" +
-					'<button type="button" class="btn btn-primary" data-assign="' + esc(s.id) + '"' +
-					(shippers.length ? "" : " disabled") + ">Phân công</button></div>" + viewAction
+				? '<div class="input-group input-group-sm"><select class="form-select shipper-select" disabled>' +
+					'<option value="">Đang tải shipper phù hợp...</option></select>' +
+					'<button type="button" class="btn btn-primary" data-assign="' + esc(s.id) +
+					'" disabled>Phân công</button></div>' + viewAction
 				: esc(s.shipper ? (s.shipper.fullName || s.shipper.username) : "-");
 			return "<tr>" +
 				"<td><strong>" + esc(s.trackingCode) + "</strong></td>" +
@@ -356,14 +349,12 @@
 	}
 
 	function suggestionOptions(list) {
-		var groups = { EXACT: [], NEARBY: [], NO_ZONE: [], UNKNOWN: [] };
+		var groups = { EXACT: [], UNKNOWN: [] };
 		list.forEach(function (s) {
-			(groups[s.match] || groups.UNKNOWN).push(s);
+			if (groups[s.match]) { groups[s.match].push(s); }
 		});
 		var labels = {
 			EXACT: "Phụ trách khu vực này",
-			NEARBY: "Khu vực lân cận",
-			NO_ZONE: "Chưa được giao khu vực",
 			UNKNOWN: "Shipper"
 		};
 
@@ -371,8 +362,7 @@
 		Object.keys(labels).forEach(function (key) {
 			if (!groups[key].length) { return; }
 			html += '<optgroup label="' + esc(labels[key]) + '">' + groups[key].map(function (s) {
-				var hint = key === "NEARBY" ? " (cách " + s.hops + " chặng)" : "";
-				return '<option value="' + esc(s.id) + '">' + esc(s.fullName || ("#" + s.id)) + esc(hint) + "</option>";
+				return '<option value="' + esc(s.id) + '">' + esc(s.fullName || ("#" + s.id)) + "</option>";
 			}).join("") + "</optgroup>";
 		});
 		return html;
@@ -380,30 +370,44 @@
 
 	async function applySuggestions() {
 		var buttons = document.querySelectorAll("#currentShipmentsBody button[data-assign]");
+		var suggestionErrors = [];
 		await Promise.all(Array.prototype.map.call(buttons, async function (button) {
 			var row = button.closest("tr");
 			var select = row && row.querySelector(".shipper-select");
-			if (!select || select.disabled) { return; }
+			if (!select) { return; }
 
 			try {
 				var shipmentId = button.getAttribute("data-assign");
 				var list;
 				if (user.role === "MANAGER") {
 					list = state.currentShipmentSuggestions[shipmentId];
-					if (!list) { return; }
+					if (!list) {
+						throw new Error("Không có dữ liệu gợi ý shipper cho vận đơn này");
+					}
 				} else {
 					list = await api("/api/admin/shipments/" + encodeURIComponent(shipmentId) +
 						"/suggested-shippers");
 				}
-				if (!Array.isArray(list) || !list.length) { return; }
-
-				select.innerHTML = suggestionOptions(list);
+				if (!Array.isArray(list)) {
+					throw new Error("Dữ liệu gợi ý shipper không hợp lệ");
+				}
+				var eligible = list.filter(function (s) {
+					return s.match === "EXACT" || s.match === "UNKNOWN";
+				});
+				select.innerHTML = eligible.length
+					? suggestionOptions(eligible)
+					: '<option value="">Không có shipper phụ trách khu vực lấy hàng</option>';
+				select.disabled = eligible.length === 0;
+				button.disabled = eligible.length === 0;
 				var best = list.filter(function (s) { return s.match === "EXACT"; })[0];
 				if (best) { select.value = String(best.id); }
 			} catch (error) {
-				// keep the plain shipper list if suggestions fail
+				suggestionErrors.push(error);
 			}
 		}));
+		if (suggestionErrors.length) {
+			showAlert("danger", "Không tải được danh sách shipper phù hợp; vui lòng tải lại trước khi phân công.");
+		}
 	}
 
 	async function loadCurrentShipments() {

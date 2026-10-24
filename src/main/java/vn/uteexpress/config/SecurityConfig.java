@@ -77,7 +77,8 @@ public class SecurityConfig {
 				.dispatcherTypeMatchers(DispatcherType.FORWARD, DispatcherType.ERROR).permitAll()
 				// PUBLIC WEB
 				.requestMatchers("/ws/**").permitAll()
-				.requestMatchers("/", "/login", "/register", "/my-orders", "/booking", "/js/**", "/css/**").permitAll()
+				.requestMatchers("/", "/login", "/register", "/my-orders", "/booking", "/js/**", "/css/**",
+						"/uploads/avatars/**").permitAll()
 				// PAGE SHELLS: no data in them. admin.js/auth.js guard the view and the
 				// /api/** chain enforces the real role checks on every data request.
 				.requestMatchers("/admin/dashboard", "/manager/dashboard", "/shipper/dashboard").permitAll()

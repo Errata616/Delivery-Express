@@ -17,6 +17,7 @@
 			<span class="navbar-text text-white me-auto ms-3">Bảng điều khiển shipper</span>
 			<div class="d-flex align-items-center gap-3">
 				<span id="whoami" class="text-white small"></span>
+				<div data-profile-actions class="d-flex align-items-center gap-2"></div>
 				<%-- Notification bell --%>
 				<div id="notif-bell-container"></div>
 				<button id="logoutBtn" type="button" class="btn btn-sm btn-outline-light">Đăng xuất</button>
@@ -115,6 +116,7 @@
 	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 	<script src="<%= request.getContextPath() %>/js/auth.js"></script>
 	<script src="<%= request.getContextPath() %>/js/api.js"></script>
+	<script src="<%= request.getContextPath() %>/js/profile.js"></script>
 	<%-- WebSocket notification bell --%>
 	<script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
@@ -497,13 +499,9 @@
 				var district = button.getAttribute("data-next-district");
 				button.disabled = true;
 				try {
-					var updatedShipment = await api("/api/shipments/" + encodeURIComponent(shipmentId) + "/district?district="
+					await api("/api/shipments/" + encodeURIComponent(shipmentId) + "/district?district="
 						+ encodeURIComponent(district), { method: "PUT" });
-					if (updatedShipment.currentDistrict !== district) {
-						showAlert("info", "Tình trạng hoạt động của shipper đã thay đổi; hệ thống đã tìm lộ trình mới.");
-					} else {
-						showAlert("success", "Đã cập nhật vị trí và bàn giao vận đơn theo lộ trình.");
-					}
+					showAlert("success", "Đã cập nhật vị trí theo lộ trình đã phân công.");
 					await loadShipments();
 				} catch (error) {
 					showAlert("danger", "Không cập nhật được quận hiện tại: " + error.message);

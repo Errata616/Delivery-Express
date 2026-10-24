@@ -16,7 +16,8 @@ window.apiRequest = async function (path, options) {
 	function send() {
 		var headers = new Headers(extraHeaders);
 		headers.set("Accept", "application/json");
-		if (body !== undefined) {
+		var isFormData = body instanceof FormData;
+		if (body !== undefined && !isFormData) {
 			headers.set("Content-Type", "application/json");
 		}
 		var token = useAuth && window.Auth ? window.Auth.getAccessToken() : null;
@@ -26,7 +27,7 @@ window.apiRequest = async function (path, options) {
 		return fetch(path, {
 			method: method,
 			headers: headers,
-			body: body === undefined ? undefined : JSON.stringify(body),
+			body: body === undefined ? undefined : isFormData ? body : JSON.stringify(body),
 			credentials: "same-origin"
 		});
 	}

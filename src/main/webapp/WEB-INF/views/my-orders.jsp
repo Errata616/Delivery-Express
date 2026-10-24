@@ -22,6 +22,7 @@
 				<%-- Notification bell (populated by notification.js) --%>
 				<div id="notif-bell-container"></div>
 				<span id="customer-name" class="text-white"></span>
+				<div data-profile-actions class="d-flex align-items-center gap-2"></div>
 				<button id="logout-button" class="btn btn-outline-light btn-sm" type="button">
 					Đăng xuất
 				</button>
@@ -147,6 +148,7 @@
 	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 	<script src="${pageContext.request.contextPath}/js/auth.js"></script>
 	<script src="${pageContext.request.contextPath}/js/api.js"></script>
+	<script src="${pageContext.request.contextPath}/js/profile.js"></script>
 	<%-- SockJS + STOMP + notification bell — must load before inline IIFE --%>
 	<script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>

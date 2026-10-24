@@ -256,33 +256,12 @@ public class ShipmentService {
 		if (!routeService.areAdjacent(previousDistrict, updatedDistrict)) {
 			throw new IllegalArgumentException("Quận cập nhật không liền kề với vị trí hiện tại");
 		}
+		if (!plannedRoute.get(routeIndex + 1).equals(updatedDistrict.code())) {
+			throw new IllegalArgumentException("Quận cập nhật không khớp với bước tiếp theo trong lộ trình");
+		}
 
-		District destination = routeService.resolve(shipment.getDeliveryDistrict())
-				.orElseThrow(() -> new IllegalStateException("Không nhận diện được quận giao hàng"));
 		ShipperRoutingData routingData = activeShipperRoutingData();
-		if (!hasActiveShipperForDistrict(destination, routingData)) {
-			throw new IllegalArgumentException("Không có shipper đang hoạt động phụ trách quận giao hàng");
-		}
-
-		Set<String> allowedDistricts = traversableDistricts(routingData);
-		allowedDistricts.add(previousDistrict.code());
-
-		Route remainingRoute = routeService.shortestPath(previousDistrict, destination, allowedDistricts)
-				.orElseThrow(() -> new IllegalArgumentException(
-						"Không còn lộ trình giao hàng qua các quận có shipper đang hoạt động"));
-		if (remainingRoute.path().size() < 2
-				|| !remainingRoute.path().get(1).code().equals(updatedDistrict.code())) {
-			List<String> replannedRoute = new ArrayList<>(plannedRoute.subList(0, routeIndex + 1));
-			remainingRoute.path().stream().skip(1).map(District::code).forEach(replannedRoute::add);
-			shipment.setPlannedRouteDistricts(replannedRoute);
-			shipment.setCurrentRouteIndex(routeIndex);
-			return shipmentRepository.save(shipment);
-		}
-
 		User nextShipper = selectShipperForDistrict(updatedDistrict, shipment.getShipper(), routingData);
-		List<String> updatedRoute = new ArrayList<>(plannedRoute.subList(0, routeIndex + 1));
-		remainingRoute.path().stream().skip(1).map(District::code).forEach(updatedRoute::add);
-		shipment.setPlannedRouteDistricts(updatedRoute);
 		shipment.setCurrentRouteIndex(routeIndex + 1);
 		boolean handedOff = !shipment.getShipper().getId().equals(nextShipper.getId());
 		shipment.setShipper(nextShipper);
@@ -775,10 +754,7 @@ public class ShipmentService {
 		if (availableShipper.isPresent()) {
 			return availableShipper.get();
 		}
-		if (routingData.allZonesByShipper().values().stream().noneMatch(zones -> zones.contains(district.code()))) {
-			return currentShipper;
-		}
-		throw new IllegalArgumentException("Không có shipper đang hoạt động phụ trách quận " + district.name());
+		return currentShipper;
 	}
 
 	private Set<String> traversableDistricts(ShipperRoutingData routingData) {
