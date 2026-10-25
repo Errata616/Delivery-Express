@@ -1,16 +1,22 @@
 package vn.uteexpress.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Optional;
 
+import org.mockito.ArgumentCaptor;
 import org.junit.jupiter.api.Test;
 
+import vn.uteexpress.entity.Hub;
 import vn.uteexpress.entity.Role;
 import vn.uteexpress.entity.Shipment;
+import vn.uteexpress.entity.ShipmentEvent;
 import vn.uteexpress.entity.ShipmentStatus;
 import vn.uteexpress.entity.ShipperZone;
 import vn.uteexpress.entity.User;
@@ -22,6 +28,7 @@ import vn.uteexpress.repository.ReviewRepository;
 import vn.uteexpress.repository.ShipmentEventRepository;
 import vn.uteexpress.repository.ShipmentRepository;
 import vn.uteexpress.repository.ShipperZoneRepository;
+import vn.uteexpress.repository.ShippingFeeRuleRepository;
 import vn.uteexpress.repository.UserRepository;
 
 class ShipmentRoutingHandoffTest {
@@ -32,8 +39,12 @@ class ShipmentRoutingHandoffTest {
 		PaymentRepository payments = mock(PaymentRepository.class);
 		UserRepository users = mock(UserRepository.class);
 		ShipperZoneRepository zones = mock(ShipperZoneRepository.class);
+		HubRepository hubs = mock(HubRepository.class);
+		ShipmentEventRepository events = mock(ShipmentEventRepository.class);
 		User shipperA = shipper(1L, "Shipper A");
 		User shipperB = shipper(2L, "Shipper B");
+		Hub q2Hub = new Hub("HCM-Q2", "Bưu cục Quận 2", "Địa chỉ bưu cục", "Quận 2",
+				"TP. Hồ Chí Minh", "0900000000");
 		Shipment shipment = new Shipment();
 		shipment.setPickupProvince("TP. Hồ Chí Minh");
 		shipment.setPickupDistrict("Bình Thạnh");
@@ -47,11 +58,12 @@ class ShipmentRoutingHandoffTest {
 		when(zones.findByShipperIdIn(List.of(1L, 2L))).thenReturn(List.of(
 				new ShipperZone(shipperA, "BTH"),
 				new ShipperZone(shipperB, "Q7")));
+		when(hubs.findByActiveTrue()).thenReturn(List.of(q2Hub));
 		when(payments.existsByShipmentIdAndStatus(10L, "PAID")).thenReturn(true);
 
 		ShipmentService service = new ShipmentService(shipments, mock(OrderRepository.class), payments,
-				mock(HiddenShipmentRepository.class), users, mock(ShipmentEventRepository.class),
-				mock(ReviewRepository.class), mock(HubRepository.class), mock(ShippingFeeService.class),
+				mock(HiddenShipmentRepository.class), users, events,
+				mock(ReviewRepository.class), hubs, new ShippingFeeService(mock(ShippingFeeRuleRepository.class)),
 				mock(NotificationService.class), zones, new RouteService());
 
 		service.assignShipper(10L, 1L);
@@ -66,6 +78,11 @@ class ShipmentRoutingHandoffTest {
 		assertEquals(2L, shipment.getShipper().getId());
 		assertEquals("Q7", shipment.getCurrentDistrict());
 		assertEquals(2, shipment.getCurrentRouteIndex());
+
+		ArgumentCaptor<ShipmentEvent> eventCaptor = ArgumentCaptor.forClass(ShipmentEvent.class);
+		verify(events, atLeastOnce()).save(eventCaptor.capture());
+		assertTrue(eventCaptor.getAllValues().stream()
+				.anyMatch(event -> event.getNote().contains("Đã đến Quận 2") && event.getHub() == q2Hub));
 
 		service.updateStatus(10L, ShipmentStatus.DELIVERED);
 		assertEquals(ShipmentStatus.DELIVERED, shipment.getStatus());

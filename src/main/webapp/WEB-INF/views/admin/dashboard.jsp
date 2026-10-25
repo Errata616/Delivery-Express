@@ -253,7 +253,7 @@
 				</div>
 
 				<div class="card shadow-sm mt-3">
-					<div class="card-header fw-semibold">Tài khoản người dùng &amp; đối tác</div>
+					<div class="card-header fw-semibold">Tài khoản người dùng</div>
 					<div class="table-responsive">
 						<table class="table table-sm align-middle mb-0">
 							<thead class="table-light">

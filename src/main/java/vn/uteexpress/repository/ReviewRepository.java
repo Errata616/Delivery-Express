@@ -1,6 +1,7 @@
 package vn.uteexpress.repository;
 
 import java.util.Optional;
+import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -18,6 +19,8 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 	Optional<Review> findByShipmentId(Long shipmentId);
 
 	Page<Review> findByShipperIdOrderByCreatedAtDesc(Long shipperId, Pageable pageable);
+
+	List<Review> findByCustomerIdOrderByCreatedAtDesc(Long customerId);
 
 	long countByShipperId(Long shipperId);
 

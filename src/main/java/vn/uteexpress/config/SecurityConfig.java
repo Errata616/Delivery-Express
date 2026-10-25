@@ -91,8 +91,6 @@ public class SecurityConfig {
 				.requestMatchers("/admin/**").hasRole("ADMIN")
 				// MANAGER WEB
 				.requestMatchers("/manager/**").hasAnyRole("MANAGER", "ADMIN")
-				// VENDOR WEB
-				.requestMatchers("/vendor/**").hasAnyRole("VENDOR", "ADMIN")
 				// SHIPPER WEB
 				.requestMatchers("/shipper/**").hasAnyRole("SHIPPER", "ADMIN")
 				.anyRequest().authenticated())

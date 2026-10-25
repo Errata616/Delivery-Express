@@ -27,7 +27,7 @@ import vn.uteexpress.repository.RoleRepository;
 import vn.uteexpress.repository.ShipmentEventRepository;
 import vn.uteexpress.repository.ShipmentRepository;
 import vn.uteexpress.repository.ShipperZoneRepository;
-import vn.uteexpress.repository.ShopRepository;
+import vn.uteexpress.repository.DeliveryRepository;
 import vn.uteexpress.repository.UserRepository;
 import vn.uteexpress.security.CurrentUser;
 
@@ -47,7 +47,7 @@ public class AdminUserService {
 	private final ShipmentEventRepository shipmentEventRepository;
 	private final ShipmentRepository shipmentRepository;
 	private final ShipperZoneRepository shipperZoneRepository;
-	private final ShopRepository shopRepository;
+	private final DeliveryRepository shopRepository;
 
 	public AdminUserService(UserRepository userRepository, RoleRepository roleRepository,
 			PasswordEncoder passwordEncoder, RefreshTokenRepository refreshTokenRepository, CurrentUser currentUser,
@@ -55,7 +55,7 @@ public class AdminUserService {
 			NotificationRepository notificationRepository, OrderRepository orderRepository,
 			ReviewRepository reviewRepository, ShipmentEventRepository shipmentEventRepository,
 			ShipmentRepository shipmentRepository, ShipperZoneRepository shipperZoneRepository,
-			ShopRepository shopRepository) {
+			DeliveryRepository shopRepository) {
 		this.userRepository = userRepository;
 		this.roleRepository = roleRepository;
 		this.passwordEncoder = passwordEncoder;

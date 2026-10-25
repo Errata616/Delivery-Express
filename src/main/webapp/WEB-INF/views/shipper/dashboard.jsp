@@ -57,29 +57,36 @@
 			</button>
 		</div>
 
-		<div class="row g-3 mb-4">
-			<div class="col-6 col-lg-3">
+		<div class="row g-3 mb-4 row-cols-2 row-cols-lg-5">
+			<div class="col">
 				<div class="card shadow-sm h-100"><div class="card-body">
 					<div class="text-muted small">Tổng vận đơn</div>
 					<div class="fs-3 fw-bold" id="statTotal">-</div>
 				</div></div>
 			</div>
-			<div class="col-6 col-lg-3">
+			<div class="col">
 				<div class="card shadow-sm h-100"><div class="card-body">
 					<div class="text-muted small">Đang xử lý</div>
 					<div class="fs-3 fw-bold text-primary" id="statActive">-</div>
 				</div></div>
 			</div>
-			<div class="col-6 col-lg-3">
+			<div class="col">
 				<div class="card shadow-sm h-100"><div class="card-body">
 					<div class="text-muted small">Giao thành công</div>
 					<div class="fs-3 fw-bold text-success" id="statDelivered">-</div>
 				</div></div>
 			</div>
-			<div class="col-6 col-lg-3">
+			<div class="col">
 				<div class="card shadow-sm h-100"><div class="card-body">
 					<div class="text-muted small">Giao thất bại</div>
 					<div class="fs-3 fw-bold text-danger" id="statFailed">-</div>
+				</div></div>
+			</div>
+			<div class="col">
+				<div class="card shadow-sm h-100"><div class="card-body">
+					<div class="text-muted small">Đánh giá khách hàng</div>
+					<div class="fs-3 fw-bold text-warning" id="statRating">-</div>
+					<div class="small text-muted" id="statRatingCount">Đang tải...</div>
 				</div></div>
 			</div>
 		</div>
@@ -440,6 +447,20 @@
 				setText("statFailed", shipments.filter(function (s) { return s.status === "FAILED"; }).length);
 			}
 
+			async function loadRatingSummary() {
+				try {
+					var summary = await api("/api/reviews/me/shipper-summary");
+					if (!summary || typeof summary.average !== "number" || typeof summary.count !== "number") {
+						throw new Error("Dữ liệu đánh giá không hợp lệ.");
+					}
+					setText("statRating", summary.count ? summary.average.toFixed(1) + " / 5" : "Chưa có");
+					setText("statRatingCount", summary.count + (summary.count === 1 ? " đánh giá" : " đánh giá"));
+				} catch (error) {
+					setText("statRating", "—");
+					setText("statRatingCount", "Không tải được: " + (error.message || "Lỗi không xác định"));
+				}
+			}
+
 			function showAlert(type, message) {
 				alertBox.replaceChildren();
 				var alert = document.createElement("div");
@@ -561,6 +582,7 @@
 
 			loadAvailability();
 			loadShipments();
+			loadRatingSummary();
 		})();
 	</script>
 </body>

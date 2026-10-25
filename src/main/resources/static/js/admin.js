@@ -48,8 +48,7 @@
 		ADMIN: "Quản trị viên",
 		MANAGER: "Quản lý",
 		SHIPPER: "Shipper",
-		USER: "Người dùng",
-		VENDOR: "Đối tác"
+		USER: "Người dùng"
 	};
 
 	var DISTRICT_NAMES = {
@@ -290,9 +289,7 @@
 		try {
 			var users = (await api("/api/admin/users")) || [];
 			state.managers = users.filter(function (account) { return account.role === "MANAGER"; });
-			var otherAccounts = users.filter(function (account) {
-				return account.role === "USER" || account.role === "VENDOR";
-			});
+			var otherAccounts = users.filter(function (account) { return account.role === "USER"; });
 			renderManagers(state.managers);
 			renderUserAccounts(otherAccounts);
 			renderShippers();

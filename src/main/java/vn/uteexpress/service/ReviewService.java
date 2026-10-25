@@ -4,6 +4,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.List;
 
 import vn.uteexpress.dto.ReviewRequest;
 import vn.uteexpress.dto.ReviewResponse;
@@ -45,6 +46,10 @@ public class ReviewService {
 			throw new IllegalArgumentException("Chỉ được đánh giá sau khi đơn đã giao thành công");
 		}
 
+		if (shipment.getShipper() == null) {
+			throw new IllegalArgumentException("Vận đơn chưa được gán shipper để đánh giá");
+		}
+
 		if (reviewRepository.existsByShipmentId(shipment.getId())) {
 			throw new IllegalArgumentException("Vận đơn này đã được đánh giá");
 		}
@@ -81,6 +86,12 @@ public class ReviewService {
 	@Transactional(readOnly = true)
 	public Page<ReviewResponse> getShipperReviews(Long shipperId, Pageable pageable) {
 		return reviewRepository.findByShipperIdOrderByCreatedAtDesc(shipperId, pageable).map(ReviewResponse::from);
+	}
+
+	@Transactional(readOnly = true)
+	public List<ReviewResponse> getCustomerReviews(Long customerId) {
+		return reviewRepository.findByCustomerIdOrderByCreatedAtDesc(customerId).stream()
+				.map(ReviewResponse::from).toList();
 	}
 
 	@Transactional(readOnly = true)

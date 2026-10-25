@@ -34,7 +34,7 @@ import vn.uteexpress.repository.RoleRepository;
 import vn.uteexpress.repository.ShipmentEventRepository;
 import vn.uteexpress.repository.ShipmentRepository;
 import vn.uteexpress.repository.ShipperZoneRepository;
-import vn.uteexpress.repository.ShopRepository;
+import vn.uteexpress.repository.DeliveryRepository;
 import vn.uteexpress.repository.UserRepository;
 import vn.uteexpress.security.CurrentUser;
 
@@ -207,7 +207,7 @@ class AdminUserServiceTest {
 		ShipmentEventRepository shipmentEventRepository = mock(ShipmentEventRepository.class);
 		ShipmentRepository shipmentRepository = mock(ShipmentRepository.class);
 		ShipperZoneRepository shipperZoneRepository = mock(ShipperZoneRepository.class);
-		ShopRepository shopRepository = mock(ShopRepository.class);
+		DeliveryRepository shopRepository = mock(DeliveryRepository.class);
 
 		when(userRepository.findById(20L)).thenReturn(Optional.of(manager));
 		when(manager.getId()).thenReturn(20L);
@@ -251,7 +251,7 @@ class AdminUserServiceTest {
 				refreshTokenRepository, currentUser, mock(AddressRepository.class),
 				mock(HiddenShipmentRepository.class), mock(NotificationRepository.class), orderRepository,
 				mock(ReviewRepository.class), mock(ShipmentEventRepository.class), mock(ShipmentRepository.class),
-				mock(ShipperZoneRepository.class), mock(ShopRepository.class));
+				mock(ShipperZoneRepository.class), mock(DeliveryRepository.class));
 
 		ResponseStatusException exception = assertThrows(ResponseStatusException.class,
 				() -> service.deleteUser(20L));
@@ -281,7 +281,7 @@ class AdminUserServiceTest {
 				mock(HiddenShipmentRepository.class), mock(NotificationRepository.class),
 				mock(OrderRepository.class), mock(ReviewRepository.class),
 				mock(ShipmentEventRepository.class), shipmentRepository,
-				mock(ShipperZoneRepository.class), mock(ShopRepository.class));
+				mock(ShipperZoneRepository.class), mock(DeliveryRepository.class));
 
 		ResponseStatusException exception = assertThrows(ResponseStatusException.class,
 				() -> service.deleteUser(20L));
@@ -296,6 +296,6 @@ class AdminUserServiceTest {
 				mock(AddressRepository.class), mock(HiddenShipmentRepository.class),
 				mock(NotificationRepository.class), mock(OrderRepository.class), mock(ReviewRepository.class),
 				mock(ShipmentEventRepository.class), mock(ShipmentRepository.class),
-				mock(ShipperZoneRepository.class), mock(ShopRepository.class));
+				mock(ShipperZoneRepository.class), mock(DeliveryRepository.class));
 	}
 }

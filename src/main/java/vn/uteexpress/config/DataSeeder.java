@@ -24,7 +24,6 @@ public class DataSeeder {
 			// =========================
 
 			createRole(roleRepository, "USER");
-			createRole(roleRepository, "VENDOR");
 			createRole(roleRepository, "MANAGER");
 			createRole(roleRepository, "SHIPPER");
 			createRole(roleRepository, "ADMIN");

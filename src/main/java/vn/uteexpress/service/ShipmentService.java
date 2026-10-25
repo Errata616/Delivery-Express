@@ -144,8 +144,8 @@ public class ShipmentService {
 		shipment.setPaymentMethod(paymentMethod);
 		shipment.setPaymentStatus(paymentMethod == PaymentMethod.WALLET ? "PAID" : "UNPAID");
 
-		shipment.setOriginHub(findHubByProvince(request.getPickupProvince()));
-		shipment.setDestinationHub(findHubByProvince(request.getDeliveryProvince()));
+		shipment.setOriginHub(findHubForAddress(request.getPickupDistrict(), request.getPickupProvince()));
+		shipment.setDestinationHub(findHubForAddress(request.getDeliveryDistrict(), request.getDeliveryProvince()));
 
 		if (paymentMethod == PaymentMethod.WALLET) {
 			customer.setWalletBalance(customer.getWalletBalance().subtract(fee.totalFee()));
@@ -317,7 +317,8 @@ public class ShipmentService {
 		}
 
 		Shipment saved = shipmentRepository.save(shipment);
-		recordEvent(saved, handedOff ? ShipmentStatus.PICKED_UP : saved.getStatus(), null, eventNote,
+		Hub currentHub = findHubAtDistrict(updatedDistrict, shipment.getDeliveryProvince());
+		recordEvent(saved, handedOff ? ShipmentStatus.PICKED_UP : saved.getStatus(), currentHub, eventNote,
 				getActorOrNull());
 		notifyCustomer(saved, eventNote);
 		if (handedOff) {
@@ -968,6 +969,28 @@ public class ShipmentService {
 		case DELIVERING, DELIVERED, FAILED -> shipment.getDestinationHub();
 		default -> null;
 		};
+	}
+
+	private Hub findHubForAddress(String district, String province) {
+		Hub districtHub = routeService.resolve(district)
+				.map(resolvedDistrict -> findHubAtDistrict(resolvedDistrict, province))
+				.orElse(null);
+		return districtHub != null ? districtHub : findHubByProvince(province);
+	}
+
+	private Hub findHubAtDistrict(District district, String province) {
+		String wantedProvince = shippingFeeService.normalizeProvince(province);
+		if (wantedProvince == null || wantedProvince.isEmpty()) {
+			return null;
+		}
+
+		return hubRepository.findByActiveTrue().stream()
+				.filter(hub -> wantedProvince.equals(shippingFeeService.normalizeProvince(hub.getProvince())))
+				.filter(hub -> routeService.resolve(hub.getDistrict())
+						.map(hubDistrict -> hubDistrict.code().equals(district.code()))
+						.orElse(false))
+				.findFirst()
+				.orElse(null);
 	}
 
 	// Best-effort: first active hub whose province matches (ignores case, accents, "TP."/"Tỉnh")

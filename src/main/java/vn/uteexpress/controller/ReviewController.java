@@ -5,11 +5,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 import jakarta.validation.Valid;
 import vn.uteexpress.dto.ApiResponse;
 import vn.uteexpress.dto.PageResponse;
 import vn.uteexpress.dto.ReviewRequest;
 import vn.uteexpress.dto.ReviewResponse;
+import vn.uteexpress.entity.User;
 import vn.uteexpress.security.CurrentUser;
 import vn.uteexpress.service.ReviewService;
 
@@ -31,6 +34,20 @@ public class ReviewController {
 		ReviewResponse created = reviewService.create(currentUser.getUser().getId(), request);
 
 		return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok("Cảm ơn bạn đã đánh giá", created));
+	}
+
+	@GetMapping("/mine")
+	public ResponseEntity<ApiResponse<List<ReviewResponse>>> getMyReviews() {
+		return ResponseEntity.ok(ApiResponse.ok(reviewService.getCustomerReviews(currentUser.getUser().getId())));
+	}
+
+	@GetMapping("/me/shipper-summary")
+	public ResponseEntity<ApiResponse<ReviewService.RatingSummary>> getMyShipperSummary() {
+		User user = currentUser.getUser();
+		if (user.getRole() == null || !"SHIPPER".equalsIgnoreCase(user.getRole().getName())) {
+			throw new IllegalArgumentException("Chỉ Shipper mới được xem tổng kết đánh giá cá nhân");
+		}
+		return ResponseEntity.ok(ApiResponse.ok(reviewService.getShipperSummary(user.getId())));
 	}
 
 	@GetMapping("/shipment/{shipmentId}")

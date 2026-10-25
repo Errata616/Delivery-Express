@@ -3,8 +3,8 @@ package vn.uteexpress.entity;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "shops")
-public class Shop {
+@Table(name = "deliveries")
+public class Delivery {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -33,10 +33,10 @@ public class Shop {
 	private User vendor;
 
 
-	public Shop() {
+	public Delivery() {
 	}
 
-	public Shop(String name, String description, String address, String phone, String logo, boolean active,
+	public Delivery(String name, String description, String address, String phone, String logo, boolean active,
 			User vendor) {
 		this.name = name;
 		this.description = description;

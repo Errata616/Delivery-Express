@@ -38,7 +38,7 @@
 		<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
 			<div>
 				<h1 class="h2 mb-1">Đơn hàng của tôi</h1>
-				<p class="text-muted mb-0">Theo dõi và thanh toán các vận đơn bạn đã tạo.</p>
+				<p class="text-muted mb-0">Theo dõi, thanh toán và đánh giá shipper cho các vận đơn đã giao.</p>
 			</div>
 		</div>
 
@@ -146,6 +146,46 @@
 		</div>
 	</div>
 
+	<div class="modal fade" id="reviewModal" tabindex="-1" aria-labelledby="reviewModalTitle" aria-hidden="true">
+		<div class="modal-dialog modal-dialog-centered">
+			<div class="modal-content border-0 shadow">
+				<div class="modal-header">
+					<div>
+						<div class="small text-muted">Đánh giá shipper</div>
+						<h2 class="modal-title h5 mb-0" id="reviewModalTitle">Vận đơn</h2>
+					</div>
+					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+				</div>
+				<form id="review-form">
+					<div class="modal-body">
+						<div id="review-error" class="alert alert-danger d-none" role="alert"></div>
+						<label class="form-label fw-semibold" id="review-rating-label">Bạn hài lòng với shipper thế nào?</label>
+						<div class="d-flex gap-2 mb-3" role="radiogroup" aria-labelledby="review-rating-label">
+							<input class="btn-check" type="radio" name="rating" id="review-rating-1" value="1" required>
+							<label class="btn btn-outline-warning" for="review-rating-1" aria-label="1 sao"><i class="bi bi-star-fill" aria-hidden="true"></i></label>
+							<input class="btn-check" type="radio" name="rating" id="review-rating-2" value="2">
+							<label class="btn btn-outline-warning" for="review-rating-2" aria-label="2 sao"><i class="bi bi-star-fill" aria-hidden="true"></i></label>
+							<input class="btn-check" type="radio" name="rating" id="review-rating-3" value="3">
+							<label class="btn btn-outline-warning" for="review-rating-3" aria-label="3 sao"><i class="bi bi-star-fill" aria-hidden="true"></i></label>
+							<input class="btn-check" type="radio" name="rating" id="review-rating-4" value="4">
+							<label class="btn btn-outline-warning" for="review-rating-4" aria-label="4 sao"><i class="bi bi-star-fill" aria-hidden="true"></i></label>
+							<input class="btn-check" type="radio" name="rating" id="review-rating-5" value="5">
+							<label class="btn btn-outline-warning" for="review-rating-5" aria-label="5 sao"><i class="bi bi-star-fill" aria-hidden="true"></i></label>
+						</div>
+						<label for="review-comment" class="form-label fw-semibold">Nhận xét (không bắt buộc)</label>
+						<textarea id="review-comment" class="form-control" rows="4" maxlength="1000"
+							placeholder="Chia sẻ trải nghiệm giao hàng của bạn"></textarea>
+						<div class="form-text">Tối đa 1.000 ký tự.</div>
+					</div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button>
+						<button type="submit" class="btn btn-primary" id="review-submit">Gửi đánh giá</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+
 	<script>
 		window.APP_CONTEXT_PATH = "${pageContext.request.contextPath}";
 	</script>
@@ -183,6 +223,12 @@
 			var payError = document.getElementById("pay-error");
 			var payConfirm = document.getElementById("pay-confirm");
 			var payingShipment = null;
+			var reviewModal = new bootstrap.Modal(document.getElementById("reviewModal"));
+			var reviewForm = document.getElementById("review-form");
+			var reviewError = document.getElementById("review-error");
+			var reviewSubmit = document.getElementById("review-submit");
+			var reviewingShipment = null;
+			var reviewsByShipment = {};
 
 			var statuses = {
 				READY: "Chờ xử lý",
@@ -382,6 +428,63 @@
 				payModal.show();
 			}
 
+			function openReviewModal(shipment, review) {
+				reviewingShipment = shipment;
+				reviewError.classList.add("d-none");
+				reviewForm.reset();
+				document.getElementById("reviewModalTitle").textContent = shipment.trackingCode;
+				document.getElementById("review-comment").value = review ? (review.comment || "") : "";
+				for (var rating = 1; rating <= 5; rating += 1) {
+					var input = document.getElementById("review-rating-" + rating);
+					input.disabled = Boolean(review);
+					input.checked = Boolean(review && review.rating === rating);
+				}
+				document.getElementById("review-comment").readOnly = Boolean(review);
+				reviewSubmit.classList.toggle("d-none", Boolean(review));
+				reviewSubmit.disabled = false;
+				reviewSubmit.textContent = "Gửi đánh giá";
+				document.getElementById("review-rating-label").textContent = review
+					? "Đánh giá của bạn: " + review.rating + "/5 sao"
+					: "Bạn hài lòng với shipper thế nào?";
+				reviewModal.show();
+			}
+
+			reviewForm.addEventListener("submit", async function (event) {
+				event.preventDefault();
+				if (!reviewingShipment) { return; }
+				var selected = reviewForm.querySelector('input[name="rating"]:checked');
+				if (!selected) {
+					reviewError.textContent = "Vui lòng chọn số sao đánh giá.";
+					reviewError.classList.remove("d-none");
+					return;
+				}
+
+				reviewError.classList.add("d-none");
+				reviewSubmit.disabled = true;
+				reviewSubmit.textContent = "Đang gửi...";
+				try {
+					var saved = await api("/api/reviews", {
+						method: "POST",
+						body: {
+							shipmentId: reviewingShipment.id,
+							rating: Number(selected.value),
+							comment: document.getElementById("review-comment").value
+						}
+					});
+					reviewsByShipment[saved.shipmentId] = saved;
+					reviewModal.hide();
+					showMessage("success", "Cảm ơn bạn đã đánh giá shipper cho vận đơn "
+						+ reviewingShipment.trackingCode + ".");
+					reviewingShipment = null;
+					await loadOrders(true);
+				} catch (error) {
+					reviewError.textContent = error.message || "Không gửi được đánh giá. Vui lòng thử lại.";
+					reviewError.classList.remove("d-none");
+					reviewSubmit.disabled = false;
+					reviewSubmit.textContent = "Gửi đánh giá";
+				}
+			});
+
 			payConfirm.addEventListener("click", async function () {
 				if (!payingShipment) { return; }
 
@@ -438,6 +541,23 @@
 				trackButton.setAttribute("aria-label", "Theo dõi vận đơn " + shipment.trackingCode);
 				trackButton.addEventListener("click", function () { openTracking(shipment); });
 				actionCell.appendChild(trackButton);
+				var existingReview = reviewsByShipment[shipment.id];
+				if (shipment.status === "DELIVERED" && shipment.shipper) {
+					var reviewButton = document.createElement("button");
+					reviewButton.type = "button";
+					reviewButton.className = "btn btn-sm " +
+						(existingReview ? "btn-outline-warning" : "btn-outline-success") + " ms-2";
+					reviewButton.innerHTML = existingReview
+						? '<i class="bi bi-star-fill me-1" aria-hidden="true"></i>' + existingReview.rating + "/5"
+						: '<i class="bi bi-star me-1" aria-hidden="true"></i>Đánh giá';
+					reviewButton.setAttribute("aria-label", existingReview
+						? "Xem đánh giá của bạn cho " + shipment.trackingCode
+						: "Đánh giá shipper cho " + shipment.trackingCode);
+					reviewButton.addEventListener("click", function () {
+						openReviewModal(shipment, existingReview || null);
+					});
+					actionCell.appendChild(reviewButton);
+				}
 				var needsPayment = shipment.status === "READY"
 					&& !(info && info.paid)
 					&& shipment.paymentStatus !== "PAID"
@@ -486,10 +606,12 @@
 				try {
 					var results = await Promise.all([
 						api("/api/shipments/my"),
-						api("/api/payments/my")
+						api("/api/payments/my"),
+						api("/api/reviews/mine")
 					]);
 					var shipments = results[0];
 					var payments = results[1];
+					var reviews = results[2];
 
 					if (!Array.isArray(shipments)) {
 						throw new Error("Không thể đọc danh sách đơn hàng.");
@@ -501,6 +623,12 @@
 					}
 
 					var byShipment = indexPayments(Array.isArray(payments) ? payments : []);
+					reviewsByShipment = {};
+					if (Array.isArray(reviews)) {
+						reviews.forEach(function (review) {
+							reviewsByShipment[review.shipmentId] = review;
+						});
+					}
 					shipments.forEach(function (shipment) {
 						list.appendChild(renderRow(shipment, byShipment[shipment.id]));
 					});
