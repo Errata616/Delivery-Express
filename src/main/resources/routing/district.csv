@@ -1,0 +1,23 @@
+# code,name,aliases (separated by |)
+# Save this file as UTF-8. Accents, case and punctuation are ignored when matching,
+# so "Thu Duc", "thủ đức" and "TP. Thủ Đức" all find the same district.
+code,name,aliases
+Q1,Quận 1,Q.1|District 1|1
+Q2,Quận 2,Q.2|District 2|2
+Q3,Quận 3,Q.3|District 3|3
+Q4,Quận 4,Q.4|District 4|4
+Q5,Quận 5,Q.5|District 5|5
+Q6,Quận 6,Q.6|District 6|6
+Q7,Quận 7,Q.7|District 7|7
+Q8,Quận 8,Q.8|District 8|8
+Q9,Quận 9,Q.9|District 9|9
+Q10,Quận 10,Q.10|District 10|10
+Q11,Quận 11,Q.11|District 11|11
+Q12,Quận 12,Q.12|District 12|12
+TD,Thủ Đức,TP Thủ Đức|Thành phố Thủ Đức
+GV,Gò Vấp,
+BTH,Bình Thạnh,
+PN,Phú Nhuận,
+TB,Tân Bình,
+TPH,Tân Phú,
+BTA,Bình Tân,
