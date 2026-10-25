@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import vn.uteexpress.dto.BookingRequest;
+import vn.uteexpress.dto.FeeQuoteRequest;
 import vn.uteexpress.dto.TrackingResponse;
 import vn.uteexpress.entity.Address;
 import vn.uteexpress.entity.Hub;
@@ -166,6 +167,26 @@ public class ShipmentService {
 	public ShippingFeeService.FeeQuote quote(BookingRequest request) {
 
 		return shippingFeeService.calculate(request);
+	}
+
+	public ShippingFeeService.FeeQuote quote(FeeQuoteRequest request) {
+		if (request == null) {
+			throw new IllegalArgumentException("Thông tin tính cước không được null");
+		}
+
+		routeService.plan(request.getPickupDistrict(), request.getDeliveryDistrict());
+
+		BookingRequest bookingRequest = new BookingRequest();
+		bookingRequest.setPickupProvince("TP. Hồ Chí Minh");
+		bookingRequest.setDeliveryProvince("TP. Hồ Chí Minh");
+		bookingRequest.setWeightKg(request.getWeightKg());
+		bookingRequest.setLengthCm(request.getLengthCm());
+		bookingRequest.setWidthCm(request.getWidthCm());
+		bookingRequest.setHeightCm(request.getHeightCm());
+		bookingRequest.setCodAmount(request.getCodAmount());
+		bookingRequest.setServiceType(request.getServiceType());
+
+		return shippingFeeService.calculate(bookingRequest);
 	}
 
 	// =========================================================

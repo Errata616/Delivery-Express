@@ -16,6 +16,7 @@ import org.springframework.http.HttpStatus;
 import jakarta.validation.Valid;
 import vn.uteexpress.dto.AdminUserResponse;
 import vn.uteexpress.dto.BookingRequest;
+import vn.uteexpress.dto.FeeQuoteRequest;
 import vn.uteexpress.dto.TrackingResponse;
 import vn.uteexpress.service.ShippingFeeService;
 
@@ -137,6 +138,12 @@ public class ShipmentController {
 
 	@PostMapping("/quote")
 	public ResponseEntity<ShippingFeeService.FeeQuote> quote(@Valid @RequestBody BookingRequest request) {
+
+		return ResponseEntity.ok(shipmentService.quote(request));
+	}
+
+	@PostMapping("/public-quote")
+	public ResponseEntity<ShippingFeeService.FeeQuote> publicQuote(@Valid @RequestBody FeeQuoteRequest request) {
 
 		return ResponseEntity.ok(shipmentService.quote(request));
 	}

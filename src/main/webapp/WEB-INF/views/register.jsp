@@ -8,6 +8,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>Đăng ký - UTEExpress</title>
 	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
 	<link href="${pageContext.request.contextPath}/css/style.css" rel="stylesheet">
 </head>
 <body class="bg-light">
@@ -16,6 +17,13 @@
 			<div class="col-md-6 col-lg-5">
 				<section class="card shadow-sm">
 					<div class="card-body p-4">
+						<div class="text-center mb-3">
+							<a class="navbar-brand fw-bold d-inline-flex align-items-center"
+								href="${pageContext.request.contextPath}/">
+								<span class="brand-mark"><i class="bi bi-box-seam-fill" aria-hidden="true"></i></span>
+								UTEExpress
+							</a>
+						</div>
 						<h1 class="h3 text-center mb-4">Tạo tài khoản UTEExpress</h1>
 						<div id="register-message" class="alert d-none" role="status" aria-live="polite"></div>
 						<form id="register-form">

@@ -194,11 +194,13 @@
 						<li class="mb-2"><i class="bi bi-check-circle-fill text-success"></i>
 							Phí thu hộ COD minh bạch</li>
 					</ul>
+					<p class="small text-muted mb-0">Phí áp dụng theo biểu giá nội thành
+						TP. Hồ Chí Minh; quận/huyện dùng để xác nhận tuyến giao nhận.</p>
 				</div>
 
 				<div class="col-lg-7">
 					<div class="panel-card p-4">
-						<form id="quoteForm" novalidate>
+						<form id="quoteForm">
 							<div class="row g-3">
 								<div class="col-md-6">
 									<label class="form-label small fw-semibold">Gửi từ (quận/huyện TP.HCM)</label>
@@ -430,10 +432,105 @@
 			"use strict";
 
 			var ctx = "${pageContext.request.contextPath}";
+			var quoteForm = document.getElementById("quoteForm");
+			var quoteButton = document.getElementById("quoteBtn");
+			var quoteResult = document.getElementById("quoteResult");
 			var form = document.getElementById("trackForm");
 			var codeInput = document.getElementById("trackCode");
 			var button = document.getElementById("trackBtn");
 			var result = document.getElementById("trackResult");
+
+			function formatMoney(value) {
+				return new Intl.NumberFormat("vi-VN", {
+					style: "currency",
+					currency: "VND",
+					maximumFractionDigits: 0
+				}).format(Number(value) || 0);
+			}
+
+			function appendQuoteLine(container, label, value, emphasized) {
+				var line = document.createElement("div");
+				line.className = "d-flex justify-content-between gap-3"
+					+ (emphasized ? " fw-bold border-top pt-2 mt-2" : "");
+				var labelElement = document.createElement("span");
+				labelElement.textContent = label;
+				var valueElement = document.createElement("span");
+				valueElement.textContent = value;
+				line.appendChild(labelElement);
+				line.appendChild(valueElement);
+				container.appendChild(line);
+			}
+
+			quoteForm.addEventListener("submit", async function (event) {
+				event.preventDefault();
+				quoteResult.replaceChildren();
+				if (!quoteForm.reportValidity()) { return; }
+
+				var formData = new FormData(quoteForm);
+				var dimensions = ["length", "width", "height"].map(function (name) {
+					return String(formData.get(name) || "").trim();
+				});
+				if (dimensions.some(Boolean) && !dimensions.every(Boolean)) {
+					var dimensionError = document.createElement("div");
+					dimensionError.className = "alert alert-warning mb-0";
+					dimensionError.textContent = "Vui lòng nhập đủ cả dài, rộng và cao, hoặc để trống cả ba.";
+					quoteResult.appendChild(dimensionError);
+					return;
+				}
+
+				var payload = {
+					pickupDistrict: String(formData.get("from")).trim(),
+					deliveryDistrict: String(formData.get("to")).trim(),
+					weightKg: Number(formData.get("weight")),
+					serviceType: formData.get("service"),
+					codAmount: Number(formData.get("cod") || 0),
+					lengthCm: dimensions[0] ? Number(dimensions[0]) : null,
+					widthCm: dimensions[1] ? Number(dimensions[1]) : null,
+					heightCm: dimensions[2] ? Number(dimensions[2]) : null
+				};
+
+				quoteButton.disabled = true;
+				quoteButton.textContent = "Đang tính...";
+				try {
+					var quote = await window.apiData(ctx + "/api/shipments/public-quote", {
+						method: "POST",
+						auth: false,
+						body: payload
+					});
+
+					var breakdown = document.createElement("div");
+					breakdown.className = "border rounded-3 p-3";
+					var heading = document.createElement("div");
+					heading.className = "fw-bold mb-2";
+					heading.textContent = "Chi tiết phí vận chuyển";
+					breakdown.appendChild(heading);
+					appendQuoteLine(breakdown, "Khối lượng tính cước",
+						Number(quote.chargeableWeightKg).toLocaleString("vi-VN") + " kg", false);
+					appendQuoteLine(breakdown, "Phí cơ bản", formatMoney(quote.baseFee), false);
+					appendQuoteLine(breakdown, "Phụ phí khối lượng", formatMoney(quote.weightFee), false);
+					if (Number(quote.expressSurcharge) > 0) {
+						appendQuoteLine(breakdown, "Phụ phí hỏa tốc", formatMoney(quote.expressSurcharge), false);
+					}
+					if (Number(quote.codFee) > 0) {
+						appendQuoteLine(breakdown, "Phí thu hộ COD", formatMoney(quote.codFee), false);
+					}
+					appendQuoteLine(breakdown, "Tổng phí dự kiến", formatMoney(quote.totalFee), true);
+					var deliveryTime = document.createElement("div");
+					deliveryTime.className = "small text-muted mt-2";
+					deliveryTime.textContent = "Thời gian dự kiến: " + quote.minDays + "–" + quote.maxDays + " ngày";
+					breakdown.appendChild(deliveryTime);
+					quoteResult.appendChild(breakdown);
+				} catch (error) {
+					var alert = document.createElement("div");
+					alert.className = "alert alert-danger mb-0";
+					alert.setAttribute("role", "alert");
+					alert.textContent = error.message || "Không tính được phí vận chuyển.";
+					quoteResult.appendChild(alert);
+				} finally {
+					quoteButton.disabled = false;
+					quoteButton.textContent = "Tính cước phí";
+				}
+			});
 
 			// The graph only covers Ho Chi Minh City, so skip other provinces.
 			function isHcm(province) {

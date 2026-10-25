@@ -45,6 +45,7 @@ public class SecurityConfig {
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/shipments/tracking/**").permitAll()
+						.requestMatchers(HttpMethod.POST, "/api/shipments/public-quote").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/hubs/**").authenticated()
 						.requestMatchers("/api/hubs/**").hasRole("ADMIN")
 						.requestMatchers("/api/admin/users/**").hasRole("ADMIN")

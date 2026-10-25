@@ -24,7 +24,7 @@ public class ShipmentEvent {
 	private Shipment shipment;
 
 	@Enumerated(EnumType.STRING)
-	@Column(nullable = false, length = 30)
+	@Column(nullable = false, length = 30, columnDefinition = "varchar(30)")
 	private ShipmentStatus status;
 
 	// Where it happened. Null when it is not tied to a hub.
