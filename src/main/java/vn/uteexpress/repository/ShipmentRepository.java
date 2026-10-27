@@ -39,14 +39,31 @@ public interface ShipmentRepository extends JpaRepository<Shipment, Long> {
 
 	long countByStatus(ShipmentStatus status);
 
+	long countByShipper_Manager_Id(Long managerId);
+
+	long countByShipper_Manager_IdAndStatus(Long managerId, ShipmentStatus status);
+
+	long countByShipper_Manager_IdAndStatusAndDeliveredAtGreaterThanEqualAndDeliveredAtLessThan(Long managerId,
+			ShipmentStatus status, LocalDateTime startInclusive, LocalDateTime endExclusive);
+
 	long countByStatusAndDeliveredAtGreaterThanEqualAndDeliveredAtLessThan(ShipmentStatus status,
 			LocalDateTime startInclusive, LocalDateTime endExclusive);
 
 	@Query("select sum(s.shippingFee) from Shipment s where s.status = :status")
 	BigDecimal sumShippingFeeByStatus(@Param("status") ShipmentStatus status);
 
+	@Query("select sum(s.shippingFee) from Shipment s "
+			+ "where s.status = :status and s.shipper.manager.id = :managerId")
+	BigDecimal sumShippingFeeByShipperManagerIdAndStatus(@Param("managerId") Long managerId,
+			@Param("status") ShipmentStatus status);
+
 	@Query("select sum(s.codAmount) from Shipment s where s.status in :statuses")
 	BigDecimal sumCodAmountByStatusIn(@Param("statuses") List<ShipmentStatus> statuses);
+
+	@Query("select sum(s.codAmount) from Shipment s "
+			+ "where s.status in :statuses and s.shipper.manager.id = :managerId")
+	BigDecimal sumCodAmountByShipperManagerIdAndStatusIn(@Param("managerId") Long managerId,
+			@Param("statuses") List<ShipmentStatus> statuses);
     
 	// Shipments a user created directly, plus legacy ones that came through their orders
 	@Query("select s from Shipment s left join s.order o "
