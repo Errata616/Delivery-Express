@@ -353,6 +353,10 @@ section[id] {
     vertical-align: middle; /* Keeps content vertically centered */
 }
 
+#zoneCard .table > :not(caption) > * > :first-child {
+	padding-left: 1rem;
+}
+
 .section-title {
 	font-weight: 800;
 	letter-spacing: -.01em;

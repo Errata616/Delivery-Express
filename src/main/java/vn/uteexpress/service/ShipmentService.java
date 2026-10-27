@@ -601,8 +601,7 @@ public class ShipmentService {
 		}
 
 		reviewRepository.findByShipmentId(shipmentId).ifPresent(reviewRepository::delete);
-		shipmentEventRepository.deleteAll(
-				shipmentEventRepository.findByShipmentIdOrderByCreatedAtDescIdDesc(shipmentId));
+		shipmentEventRepository.deleteByShipmentId(shipmentId);
 		paymentRepository.deleteAll(payments);
 		hiddenShipmentRepository.deleteByShipmentId(shipmentId);
 		shipmentRepository.delete(shipment);
