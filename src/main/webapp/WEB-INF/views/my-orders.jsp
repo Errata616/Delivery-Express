@@ -117,6 +117,36 @@
 		</div>
 	</div>
 
+	<div class="modal fade" id="shipmentDetailsModal" tabindex="-1" aria-labelledby="shipmentDetailsTitle" aria-hidden="true">
+		<div class="modal-dialog modal-dialog-centered">
+			<div class="modal-content border-0 shadow">
+				<div class="modal-header">
+					<div>
+						<div class="small text-muted">Chi tiết vận đơn</div>
+						<h2 class="modal-title h5 mb-0" id="shipmentDetailsTitle">Thông tin đơn hàng</h2>
+					</div>
+					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+				</div>
+				<div class="modal-body">
+					<dl class="row mb-0">
+						<dt class="col-5 text-muted fw-normal">Người gửi</dt>
+						<dd class="col-7" id="detail-sender">—</dd>
+						<dt class="col-5 text-muted fw-normal">SĐT người gửi</dt>
+						<dd class="col-7" id="detail-sender-phone">—</dd>
+						<dt class="col-5 text-muted fw-normal">Người nhận</dt>
+						<dd class="col-7" id="detail-receiver">—</dd>
+						<dt class="col-5 text-muted fw-normal">SĐT người nhận</dt>
+						<dd class="col-7" id="detail-receiver-phone">—</dd>
+						<dt class="col-5 text-muted fw-normal">Tên mặt hàng</dt>
+						<dd class="col-7" id="detail-item">—</dd>
+						<dt class="col-5 text-muted fw-normal">Cân nặng</dt>
+						<dd class="col-7 mb-0" id="detail-weight">—</dd>
+					</dl>
+				</div>
+			</div>
+		</div>
+	</div>
+
 	<!-- Payment modal -->
 	<div class="modal fade" id="payModal" tabindex="-1" aria-labelledby="payModalTitle" aria-hidden="true">
 		<div class="modal-dialog modal-dialog-centered">
@@ -219,6 +249,7 @@
 			var payModalEl = document.getElementById("payModal");
 			var payModal = new bootstrap.Modal(payModalEl);
 			var trackingModal = new bootstrap.Modal(document.getElementById("trackingModal"));
+			var shipmentDetailsModal = new bootstrap.Modal(document.getElementById("shipmentDetailsModal"));
 			var trackingContent = document.getElementById("tracking-content");
 			var payError = document.getElementById("pay-error");
 			var payConfirm = document.getElementById("pay-confirm");
@@ -298,6 +329,26 @@
 					return shipment.status === "DELIVERED";
 				}).length);
 				summary.classList.remove("d-none");
+			}
+
+			function openShipmentDetails(shipment) {
+				function setDetail(id, value) {
+					document.getElementById(id).textContent = value == null || value === "" ? "—" : value;
+				}
+
+				document.getElementById("shipmentDetailsTitle").textContent =
+					shipment.trackingCode || "Thông tin đơn hàng";
+				setDetail("detail-sender", shipment.senderName);
+				setDetail("detail-sender-phone", shipment.senderPhone);
+				setDetail("detail-receiver", shipment.receiverName);
+				setDetail("detail-receiver-phone", shipment.receiverPhone);
+				setDetail("detail-item", shipment.itemDescription);
+				var weight = Number(shipment.weightKg);
+				setDetail("detail-weight", shipment.weightKg == null || shipment.weightKg === ""
+					|| !Number.isFinite(weight)
+					? null
+					: new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 2 }).format(weight) + " kg");
+				shipmentDetailsModal.show();
 			}
 
 			function openTracking(shipment) {
@@ -517,8 +568,15 @@
 
 			function renderRow(shipment, info) {
 				var row = document.createElement("tr");
-				var codeCell = addCell(row, shipment.trackingCode);
-				codeCell.classList.add("order-tracking-code");
+				var codeCell = document.createElement("td");
+				var detailsButton = document.createElement("button");
+				detailsButton.type = "button";
+				detailsButton.className = "btn btn-link p-0 text-decoration-none order-tracking-code";
+				detailsButton.textContent = shipment.trackingCode || "—";
+				detailsButton.setAttribute("aria-label", "Xem chi tiết vận đơn " + (shipment.trackingCode || ""));
+				detailsButton.addEventListener("click", function () { openShipmentDetails(shipment); });
+				codeCell.appendChild(detailsButton);
+				row.appendChild(codeCell);
 				addCell(row, shipment.receiverName);
 				addCell(row, [shipment.deliveryDistrict, shipment.deliveryProvince].filter(Boolean).join(", "));
 				var statusCell = document.createElement("td");
@@ -592,6 +650,10 @@
 				});
 				actionCell.appendChild(hideButton);
 				row.appendChild(actionCell);
+				row.addEventListener("click", function (event) {
+					if (event.target.closest("button, a")) { return; }
+					openShipmentDetails(shipment);
+				});
 
 				return row;
 			}

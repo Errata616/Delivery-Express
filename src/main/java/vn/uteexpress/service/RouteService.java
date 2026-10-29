@@ -37,12 +37,14 @@ public class RouteService {
 	public RouteResponse plan(String from, String to) {
 		District start = graph.resolve(from)
 				.orElseThrow(
-						() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "District not recognised: " + from));
+						() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+								"Không nhận diện được quận: " + from));
 		District goal = graph.resolve(to)
-				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "District not recognised: " + to));
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+						"Không nhận diện được quận: " + to));
 
 		Route route = graph.shortestPath(start, goal).orElseThrow(() -> new ResponseStatusException(
-				HttpStatus.NOT_FOUND, "No route between " + start.name() + " and " + goal.name()));
+				HttpStatus.NOT_FOUND, "Không tìm thấy tuyến giao hàng giữa " + start.name() + " và " + goal.name()));
 
 		return new RouteResponse(start, goal, route.path(), route.hops(), route.totalWeight());
 	}

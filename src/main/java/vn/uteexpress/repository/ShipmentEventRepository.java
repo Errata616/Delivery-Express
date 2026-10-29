@@ -25,6 +25,10 @@ public interface ShipmentEventRepository extends JpaRepository<ShipmentEvent, Lo
 	long countByShipmentIdAndStatus(Long shipmentId, ShipmentStatus status);
 
 	@Modifying
+	@Query("delete from ShipmentEvent e where e.shipment.id = :shipmentId")
+	int deleteByShipmentId(@Param("shipmentId") Long shipmentId);
+
+	@Modifying
 	@Query("update ShipmentEvent e set e.updatedBy = null where e.updatedBy.id = :userId")
 	int clearUpdatedBy(@Param("userId") Long userId);
 }

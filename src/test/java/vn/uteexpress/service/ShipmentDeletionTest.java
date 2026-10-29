@@ -17,7 +17,6 @@ import vn.uteexpress.entity.Order;
 import vn.uteexpress.entity.Payment;
 import vn.uteexpress.entity.Review;
 import vn.uteexpress.entity.Shipment;
-import vn.uteexpress.entity.ShipmentEvent;
 import vn.uteexpress.entity.ShipmentStatus;
 import vn.uteexpress.repository.HubRepository;
 import vn.uteexpress.repository.HiddenShipmentRepository;
@@ -62,12 +61,10 @@ class ShipmentDeletionTest {
 		ReviewRepository reviewRepository = mock(ReviewRepository.class);
 		Shipment shipment = ownedShipment(ShipmentStatus.DELIVERED);
 		Payment payment = new Payment();
-		ShipmentEvent event = mock(ShipmentEvent.class);
 		Review review = mock(Review.class);
 
 		when(shipmentRepository.findById(9L)).thenReturn(Optional.of(shipment));
 		when(paymentRepository.findByShipmentId(9L)).thenReturn(List.of(payment));
-		when(eventRepository.findByShipmentIdOrderByCreatedAtDescIdDesc(9L)).thenReturn(List.of(event));
 		when(reviewRepository.findByShipmentId(9L)).thenReturn(Optional.of(review));
 
 		new ShipmentService(shipmentRepository, mock(OrderRepository.class), paymentRepository,
@@ -77,7 +74,8 @@ class ShipmentDeletionTest {
 				.deleteCompletedShipment(9L);
 
 		verify(reviewRepository).delete(review);
-		verify(eventRepository).deleteAll(List.of(event));
+		verify(eventRepository).deleteByShipmentId(9L);
+		verify(eventRepository, never()).findByShipmentIdOrderByCreatedAtDescIdDesc(9L);
 		verify(paymentRepository).deleteAll(List.of(payment));
 		verify(hiddenShipmentRepository).deleteByShipmentId(9L);
 		verify(shipmentRepository).delete(shipment);

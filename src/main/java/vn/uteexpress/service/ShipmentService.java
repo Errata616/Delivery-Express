@@ -101,6 +101,8 @@ public class ShipmentService {
 			throw new IllegalArgumentException("Thông tin đơn gửi hàng không được null");
 		}
 
+		routeService.plan(request.getPickupDistrict(), request.getDeliveryDistrict());
+
 		PaymentMethod paymentMethod = request.getPaymentMethod() == null
 				? PaymentMethod.CASH : request.getPaymentMethod();
 		User customer = (paymentMethod == PaymentMethod.WALLET
@@ -601,8 +603,7 @@ public class ShipmentService {
 		}
 
 		reviewRepository.findByShipmentId(shipmentId).ifPresent(reviewRepository::delete);
-		shipmentEventRepository.deleteAll(
-				shipmentEventRepository.findByShipmentIdOrderByCreatedAtDescIdDesc(shipmentId));
+		shipmentEventRepository.deleteByShipmentId(shipmentId);
 		paymentRepository.deleteAll(payments);
 		hiddenShipmentRepository.deleteByShipmentId(shipmentId);
 		shipmentRepository.delete(shipment);
