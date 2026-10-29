@@ -101,6 +101,8 @@ public class ShipmentService {
 			throw new IllegalArgumentException("Thông tin đơn gửi hàng không được null");
 		}
 
+		routeService.plan(request.getPickupDistrict(), request.getDeliveryDistrict());
+
 		PaymentMethod paymentMethod = request.getPaymentMethod() == null
 				? PaymentMethod.CASH : request.getPaymentMethod();
 		User customer = (paymentMethod == PaymentMethod.WALLET
